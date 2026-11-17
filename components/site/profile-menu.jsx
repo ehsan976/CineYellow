@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Bookmark, CircleHelp, CreditCard, LogOut, Settings, User, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { signOut } from "@/lib/auth-store";
+import { avatarColors, planLabel, setActiveProfile } from "@/lib/profile-store";
 import { useApp } from "@/components/providers/app-context";
+import { useProfiles } from "@/components/site/use-profile";
+import { useAccount } from "@/components/site/use-account";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -23,18 +27,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const profiles = [
-  { id: "guest", name: "Guest", plan: "Premium plan", color: "bg-primary text-primary-foreground" },
-  { id: "family", name: "Family", plan: "Shared profile", color: "bg-sky-400 text-sky-950" },
-  { id: "kids", name: "Kids", plan: "Kids profile · 7+", color: "bg-emerald-400 text-emerald-950" },
-];
-
-const comingSoon = (page) => toast(`${page} is coming soon`, { description: "This is a demo frontend." });
-
 export function ProfileMenu() {
+  const router = useRouter();
   const { myList, hydrated } = useApp();
-  const [profileId, setProfileId] = useState("guest");
-  const profile = profiles.find((p) => p.id === profileId);
+  const { profiles, active: profile } = useProfiles();
+  const { planInfo } = useAccount();
+  const initial = (p) => (p.name.trim()[0] ?? "?").toUpperCase();
 
   return (
     <DropdownMenu>
@@ -45,7 +43,7 @@ export function ProfileMenu() {
           className="rounded-full focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
         >
           <Avatar className="ring-2 ring-primary transition hover:ring-4">
-            <AvatarFallback className={cn("font-semibold", profile.color)}>{profile.name[0]}</AvatarFallback>
+            <AvatarFallback className={cn("font-semibold", avatarColors[profile.color])}>{initial(profile)}</AvatarFallback>
           </Avatar>
         </button>
       </DropdownMenuTrigger>
@@ -53,11 +51,11 @@ export function ProfileMenu() {
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="flex items-center gap-3 p-2">
           <Avatar className="size-10">
-            <AvatarFallback className={cn("text-base font-semibold", profile.color)}>{profile.name[0]}</AvatarFallback>
+            <AvatarFallback className={cn("text-base font-semibold", avatarColors[profile.color])}>{initial(profile)}</AvatarFallback>
           </Avatar>
           <span className="min-w-0">
             <span className="block truncate font-semibold text-foreground">{profile.name}</span>
-            <span className="block text-xs font-normal text-primary">{profile.plan}</span>
+            <span className="block text-xs font-normal text-primary">{planLabel(profile, planInfo.name)}</span>
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -68,16 +66,16 @@ export function ProfileMenu() {
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="w-48">
             <DropdownMenuRadioGroup
-              value={profileId}
+              value={profile.id}
               onValueChange={(id) => {
-                setProfileId(id);
+                setActiveProfile(id);
                 toast.success(`Switched to ${profiles.find((p) => p.id === id).name}`);
               }}
             >
               {profiles.map((p) => (
                 <DropdownMenuRadioItem key={p.id} value={p.id}>
-                  <span className={cn("flex size-5 items-center justify-center rounded-full text-[10px] font-bold", p.color)}>
-                    {p.name[0]}
+                  <span className={cn("flex size-5 items-center justify-center rounded-full text-[10px] font-bold", avatarColors[p.color])}>
+                    {initial(p)}
                   </span>
                   {p.name}
                 </DropdownMenuRadioItem>
@@ -87,8 +85,10 @@ export function ProfileMenu() {
         </DropdownMenuSub>
 
         <DropdownMenuGroup>
-          <DropdownMenuItem onSelect={() => comingSoon("Profile")}>
-            <User /> Profile
+          <DropdownMenuItem asChild>
+            <Link href="/profile">
+              <User /> Profile
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
             <Link href="/my-list">
@@ -100,20 +100,29 @@ export function ProfileMenu() {
               )}
             </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => comingSoon("Account")}>
-            <CreditCard /> Account
+          <DropdownMenuItem asChild>
+            <Link href="/account">
+              <CreditCard /> Account
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => comingSoon("Settings")}>
-            <Settings /> Settings
+          <DropdownMenuItem asChild>
+            <Link href="/settings">
+              <Settings /> Settings
+            </Link>
           </DropdownMenuItem>
-          <DropdownMenuItem onSelect={() => comingSoon("Help Center")}>
-            <CircleHelp /> Help Center
+          <DropdownMenuItem asChild>
+            <Link href="/help">
+              <CircleHelp /> Help Center
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => toast("Signed out", { description: "Demo only — there's no real account yet." })}
+          onSelect={() => {
+            signOut();
+            router.push("/welcome");
+          }}
         >
           <LogOut /> Sign out
         </DropdownMenuItem>

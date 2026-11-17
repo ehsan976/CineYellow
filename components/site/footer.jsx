@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 
 const columns = [
   ["Browse", [["Home", "/"], ["Movies", "/movies"], ["Series", "/series"], ["Anime", "/anime"], ["My List", "/my-list"]]],
-  ["Help", ["Account", "Help Center", "Devices", "Contact Us"]],
+  ["Help", [["Account", "/account"], ["Help Center", "/help"], ["Devices", "/account"], ["Contact Us", "/help#contact"]]],
   ["Company", ["About", "Careers", "Press", "Gift Cards"]],
   ["Legal", ["Privacy", "Terms of Use", "Cookie Preferences"]],
 ];
@@ -38,7 +38,7 @@ export function Footer() {
           ))}
         </div>
         <Separator className="my-8" />
-        <p className="text-xs text-muted-foreground">© 2026 CineYellow. Demo frontend.</p>
+        <p className="text-xs text-muted-foreground">© 2026 CineYellow. All rights reserved.</p>
       </div>
     </footer>
   );

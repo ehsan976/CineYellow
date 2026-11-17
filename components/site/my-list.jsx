@@ -30,8 +30,8 @@ export function MyList() {
         <GridSkeleton count={6} />
       ) : items.length ? (
         <div className={gridClass}>
-          {items.map((t) => (
-            <PosterCard key={t.id} title={t} />
+          {items.map((t, i) => (
+            <PosterCard key={t.id} title={t} priority={i < 6} />
           ))}
         </div>
       ) : (

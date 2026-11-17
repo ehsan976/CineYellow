@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@videojs/core": "^10.4.0",
+    "@videojs/hlsjs-video": "^10.4.0",
+    "@videojs/react": "^10.4.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.5.2",
     "embla-carousel-react": "^8.6.0",

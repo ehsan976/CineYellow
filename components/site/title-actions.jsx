@@ -3,14 +3,18 @@
 import { Check, Play, Plus, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
+import Link from "next/link";
+
 import { cn } from "@/lib/utils";
 import { useApp } from "@/components/providers/app-context";
-import { notifyNoPlayback } from "@/components/site/title-sections";
+import { useWatchTarget } from "@/components/site/use-watch-target";
 import { Button } from "@/components/ui/button";
 
 /** Play / My List / Share buttons on the full title page. */
-export function TitleActions({ id, name }) {
+export function TitleActions({ title }) {
+  const { id, title: name } = title;
   const { isInList, toggleList } = useApp();
+  const target = useWatchTarget(title);
   const inList = isInList(id);
 
   async function share() {
@@ -32,11 +36,13 @@ export function TitleActions({ id, name }) {
   return (
     <div className="flex flex-wrap gap-3">
       <Button
+        asChild
         size="lg"
-        onClick={() => notifyNoPlayback(name)}
         className="h-11 rounded-full px-7 text-base font-semibold shadow-[0_0_30px] shadow-primary/30"
       >
-        <Play className="fill-current" /> Play
+        <Link href={target.href}>
+          <Play className="fill-current" /> {target.label}
+        </Link>
       </Button>
       <Button
         size="lg"

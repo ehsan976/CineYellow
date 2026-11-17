@@ -8,7 +8,8 @@ import { ArrowUpRight, Play, X } from "lucide-react";
 import { getTitle, metaLine, similarTitles, typeLabels } from "@/lib/catalog";
 import { useApp } from "@/components/providers/app-context";
 import { ListButton } from "@/components/site/list-button";
-import { Details, Episodes, notifyNoPlayback } from "@/components/site/title-sections";
+import { Details, Episodes } from "@/components/site/title-sections";
+import { useWatchTarget } from "@/components/site/use-watch-target";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +35,20 @@ export function TitleDialog({ titleId, open, onOpenChange }) {
         <TitleDetails key={title.id} title={title} />
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** Play / Resume: closes the popup and opens the player. */
+function PlayLink({ title }) {
+  const target = useWatchTarget(title);
+  return (
+    <DialogClose asChild>
+      <Button asChild size="lg" className="h-10 rounded-full px-6 font-semibold">
+        <Link href={target.href}>
+          <Play className="fill-current" /> {target.label}
+        </Link>
+      </Button>
+    </DialogClose>
   );
 }
 
@@ -77,13 +92,7 @@ function TitleDetails({ title }) {
             {title.title}
           </DialogTitle>
           <div className="mt-4 flex items-center gap-3">
-            <Button
-              size="lg"
-              onClick={() => notifyNoPlayback(title.title)}
-              className="h-10 rounded-full px-6 font-semibold"
-            >
-              <Play className="fill-current" /> Play
-            </Button>
+            <PlayLink title={title} />
             <ListButton titleId={title.id} size="lg" />
             <DialogClose asChild>
               <Button asChild variant="ghost" className="ml-auto h-10 rounded-full bg-black/40 px-4 hover:text-primary">

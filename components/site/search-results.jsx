@@ -46,8 +46,8 @@ export function SearchResults() {
           <PopularChips />
           <h2 className="mt-10 mb-4 text-lg font-bold">Top picks for you</h2>
           <div className={gridClass}>
-            {topPicks.map((t) => (
-              <PosterCard key={t.id} title={t} />
+            {topPicks.map((t, i) => (
+              <PosterCard key={t.id} title={t} priority={i < 6} />
             ))}
           </div>
         </>

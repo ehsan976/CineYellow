@@ -2,14 +2,32 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Check, Info, Play, Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { getTitle, metaLine } from "@/lib/catalog";
 import { useApp } from "@/components/providers/app-context";
+import { useWatchTarget } from "@/components/site/use-watch-target";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
+
+/** "Watch Now" opens the player (resuming when there is history). */
+function HeroWatchButton({ title }) {
+  const target = useWatchTarget(title);
+  return (
+    <Button
+      asChild
+      size="lg"
+      className="h-11 rounded-full px-6 text-base font-semibold shadow-[0_0_30px] shadow-primary/30"
+    >
+      <Link href={target.href}>
+        <Play className="fill-current" /> {target.resume ? target.label : "Watch Now"}
+      </Link>
+    </Button>
+  );
+}
 
 export function Hero({ items }) {
   const { openTitle, isInList, toggleList } = useApp();
@@ -72,13 +90,7 @@ export function Hero({ items }) {
                       </div>
                       <p className="mt-4 max-w-md text-base text-foreground/85 md:text-lg">{tagline}</p>
                       <div className="mt-7 flex flex-wrap gap-3">
-                        <Button
-                          size="lg"
-                          onClick={() => openTitle(title.id)}
-                          className="h-11 rounded-full px-6 text-base font-semibold shadow-[0_0_30px] shadow-primary/30"
-                        >
-                          <Play className="fill-current" /> Watch Now
-                        </Button>
+                        <HeroWatchButton title={title} />
                         <Button
                           size="lg"
                           variant="outline"

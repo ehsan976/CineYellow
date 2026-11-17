@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProvider } from "@/components/providers/app-provider";
 import { Navbar } from "@/components/site/navbar";
 import { Footer } from "@/components/site/footer";
+import { SiteChrome } from "@/components/site/site-chrome";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,9 +32,13 @@ export default function RootLayout({ children }) {
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <AppProvider>
-          <Navbar />
+          <SiteChrome>
+            <Navbar />
+          </SiteChrome>
           <div className="flex-1">{children}</div>
-          <Footer />
+          <SiteChrome>
+            <Footer />
+          </SiteChrome>
         </AppProvider>
       </body>
     </html>

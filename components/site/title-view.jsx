@@ -56,7 +56,7 @@ export function TitleView({ title }) {
             </div>
             <p className="mt-4 text-base leading-relaxed text-foreground/90 md:text-lg">{title.description}</p>
             <div className="mt-7">
-              <TitleActions id={title.id} name={title.title} />
+              <TitleActions title={title} />
             </div>
           </div>
         </div>

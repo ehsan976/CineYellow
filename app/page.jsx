@@ -1,5 +1,4 @@
 import {
-  continueWatching,
   featured,
   moreRows,
   topRows,
@@ -9,7 +8,7 @@ import { Hero } from "@/components/site/hero";
 import { Row } from "@/components/site/row";
 import { LandscapeCard } from "@/components/site/landscape-card";
 import { Top10Card } from "@/components/site/top10-card";
-import { ContinueCard } from "@/components/site/continue-card";
+import { ContinueWatchingItems } from "@/components/site/continue-card";
 
 function LandscapeRow({ row }) {
   return (
@@ -28,9 +27,7 @@ export default function Home() {
 
       <div className="relative z-10 -mt-12 space-y-10 md:-mt-20">
         <Row id="continue" title="Continue Watching" contentClassName="-ml-3 py-2">
-          {continueWatching.map((item) => (
-            <ContinueCard key={item.titleId} item={item} />
-          ))}
+          <ContinueWatchingItems />
         </Row>
 
         {/* 1. First three landscape rows */}

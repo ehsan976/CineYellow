@@ -12,6 +12,7 @@ import { Logo } from "@/components/site/logo";
 import { NotificationsMenu } from "@/components/site/notifications-menu";
 import { ProfileMenu } from "@/components/site/profile-menu";
 import { SearchBox, SearchBoxFallback } from "@/components/site/search-box";
+import { useAuth } from "@/components/site/use-auth";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -31,6 +32,7 @@ const isActive = (pathname, href) =>
 export function Navbar() {
   const pathname = usePathname();
   const { myList, hydrated } = useApp();
+  const auth = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const listCount = hydrated ? myList.length : 0;
 
@@ -92,8 +94,19 @@ export function Navbar() {
               <Search />
             </Link>
           </Button>
-          <NotificationsMenu />
-          <ProfileMenu />
+          {!hydrated ? (
+            // Sign-in state is only known in the browser; hold the space to avoid a jump.
+            <span className="size-8 rounded-full bg-muted" aria-hidden />
+          ) : auth.signedIn ? (
+            <>
+              <NotificationsMenu />
+              <ProfileMenu />
+            </>
+          ) : (
+            <Button asChild size="sm" className="rounded-full px-4 font-semibold">
+              <Link href={`/login?next=${encodeURIComponent(pathname)}`}>Sign In</Link>
+            </Button>
+          )}
 
           <Sheet>
             <SheetTrigger asChild>

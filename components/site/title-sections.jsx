@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Play } from "lucide-react";
-import { toast } from "sonner";
 
 import { getEpisodes, metaLine, typeLabels } from "@/lib/catalog";
+import { watchHref } from "@/lib/playback";
+import { useApp } from "@/components/providers/app-context";
+import { useWatchHistory } from "@/components/site/use-watch-target";
 import {
   Select,
   SelectContent,
@@ -14,14 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export function notifyNoPlayback(name) {
-  toast("Playback isn't available in this demo", { description: name });
-}
-
 /** Episode list with a season picker. Shared by the popup and the title page. */
 export function Episodes({ title, headingClassName = "text-lg" }) {
   const [season, setSeason] = useState("1");
   const episodes = getEpisodes(title, Number(season));
+  const { closeTitle } = useApp();
+  const history = useWatchHistory();
 
   return (
     <div>
@@ -45,11 +46,15 @@ export function Episodes({ title, headingClassName = "text-lg" }) {
         )}
       </div>
       <ol className="divide-y divide-border">
-        {episodes.map((ep) => (
+        {episodes.map((ep) => {
+          const saved = history[`${title.id}:s${season}e${ep.number}`];
+          const pct = saved ? Math.min(100, (saved.time / saved.duration) * 100) : 0;
+          return (
           <li key={ep.id}>
-            <button
-              type="button"
-              onClick={() => notifyNoPlayback(`${title.title} · S${season} E${ep.number}`)}
+            <Link
+              href={watchHref(title.id, Number(season), ep.number)}
+              // Inside the popup: close it so it doesn't stay open over the player.
+              onClick={closeTitle}
               className="group/ep flex w-full items-center gap-4 rounded-lg px-2 py-3 text-left transition-colors hover:bg-muted/60"
             >
               <span className="w-5 shrink-0 text-center text-xl font-bold text-muted-foreground">
@@ -57,6 +62,11 @@ export function Episodes({ title, headingClassName = "text-lg" }) {
               </span>
               <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-md bg-muted sm:w-36">
                 <Image src={ep.image} alt="" fill sizes="144px" className="object-cover" />
+                {pct > 0 && (
+                  <span className="absolute inset-x-0 bottom-0 h-1 bg-white/30">
+                    <span className="block h-full bg-primary" style={{ width: `${pct}%` }} />
+                  </span>
+                )}
                 <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover/ep:opacity-100">
                   <Play className="size-6 fill-primary text-primary" />
                 </span>
@@ -68,9 +78,10 @@ export function Episodes({ title, headingClassName = "text-lg" }) {
                 </span>
                 <span className="mt-1 line-clamp-2 text-sm text-muted-foreground">{ep.summary}</span>
               </span>
-            </button>
+            </Link>
           </li>
-        ))}
+          );
+        })}
       </ol>
     </div>
   );
