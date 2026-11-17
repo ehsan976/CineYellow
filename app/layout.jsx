@@ -2,9 +2,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { AppProvider } from "@/components/providers/app-provider";
-import { Navbar } from "@/components/site/navbar";
-import { Footer } from "@/components/site/footer";
-import { SiteChrome } from "@/components/site/site-chrome";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,15 +28,8 @@ export default function RootLayout({ children }) {
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <AppProvider>
-          <SiteChrome>
-            <Navbar />
-          </SiteChrome>
-          <div className="flex-1">{children}</div>
-          <SiteChrome>
-            <Footer />
-          </SiteChrome>
-        </AppProvider>
+        {/* Navbar + footer live in app/(main)/layout.jsx; the player and sign-in pages have none */}
+        <AppProvider>{children}</AppProvider>
       </body>
     </html>
   );

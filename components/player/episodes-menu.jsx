@@ -8,7 +8,7 @@ import { Menu } from "@videojs/react";
 
 import { cn } from "@/lib/utils";
 import { watchHref } from "@/lib/playback";
-import { getHistory, getServerHistory, subscribeHistory } from "@/lib/watch-history-store";
+import { getHistory, getServerHistory, subscribeHistory } from "@/lib/stores/watch-history-store";
 import { itemClass, PlayerMenu } from "@/components/player/player-menu";
 import { usePlayerInfo } from "@/components/player/player-context";
 

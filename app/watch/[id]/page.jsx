@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
-import { getTitle, titles } from "@/lib/catalog";
+import { getTitle, titles } from "@/lib/data/catalog";
 import { getPlayback } from "@/lib/playback";
 import { NetflixPlayer } from "@/components/player/netflix-player";
 

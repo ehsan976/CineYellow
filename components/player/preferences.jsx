@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { usePlayer } from "@videojs/react/video";
 
-import { readPlayerPrefs as read, writePlayerPrefs as write } from "@/lib/player-prefs-store";
+import { readPlayerPrefs as read, writePlayerPrefs as write } from "@/lib/stores/player-prefs-store";
 
 const isSubtitle = (t) => t.kind === "subtitles" || t.kind === "captions";
 

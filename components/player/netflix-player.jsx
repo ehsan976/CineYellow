@@ -5,7 +5,7 @@ import { HlsJsVideo } from "@videojs/react/media/hlsjs-video";
 import { VideoPlayer, usePlayer } from "@videojs/react/video";
 
 import { cn } from "@/lib/resolve-class-name";
-import { getServerPlayerPrefs, qualityOptions, readPlayerPrefs, subscribePlayerPrefs } from "@/lib/player-prefs-store";
+import { getServerPlayerPrefs, qualityOptions, readPlayerPrefs, subscribePlayerPrefs } from "@/lib/stores/player-prefs-store";
 import { Container } from "@/components/videojs/ui/container";
 import { BufferingIndicator } from "@/components/videojs/ui/buffering-indicator";
 import { ErrorDialog } from "@/components/videojs/ui/error-dialog";

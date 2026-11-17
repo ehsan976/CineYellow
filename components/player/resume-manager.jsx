@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import { usePlayer } from "@videojs/react/video";
 
-import { getProgress, saveProgress } from "@/lib/watch-history-store";
+import { getProgress, saveProgress } from "@/lib/stores/watch-history-store";
 import { formatClock, usePlayerInfo } from "@/components/player/player-context";
 
 const MIN_RESUME = 30; // don't resume the first 30s

@@ -3,15 +3,15 @@
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
-import { getTitle } from "@/lib/catalog";
+import { getTitle } from "@/lib/data/catalog";
 import {
   getMyList,
   getServerMyList,
   setMyList,
   subscribeMyList,
-} from "@/lib/my-list-store";
+} from "@/lib/stores/my-list-store";
 import { AppContext } from "@/components/providers/app-context";
-import { TitleDialog } from "@/components/site/title-dialog";
+import { TitleDialog } from "@/components/title/title-dialog";
 import { Toaster } from "@/components/ui/sonner";
 
 const noopSubscribe = () => () => {};
