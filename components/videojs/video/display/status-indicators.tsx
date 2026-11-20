@@ -3,7 +3,7 @@ import { SeekIndicator } from '@/components/videojs/ui/seek-indicator';
 import { StatusAnnouncer } from '@/components/videojs/ui/status-announcer';
 import { PlaybackStatusIndicator, StatusIndicator } from '@/components/videojs/ui/status-indicator';
 import { VolumeIndicator } from '@/components/videojs/ui/volume-indicator';
-import { cn } from '@/lib/resolve-class-name';
+import { cn } from '@/lib/player/resolve-class-name';
 export function VideoStatusIndicators({ className, ...props }: ComponentProps<'div'> = {}) {
     return (<>
       <StatusAnnouncer />

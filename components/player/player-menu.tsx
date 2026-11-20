@@ -8,7 +8,7 @@ import { Menu } from "@videojs/react";
 
 import { Button } from "@/components/videojs/ui/button";
 import { ButtonTooltip } from "@/components/videojs/ui/button-tooltip";
-import { cn } from "@/lib/resolve-class-name";
+import { cn } from "@/lib/player/resolve-class-name";
 
 // Popup look shared with the Video.js settings menu (surface, transitions, side offsets).
 export const popupClass = cn(

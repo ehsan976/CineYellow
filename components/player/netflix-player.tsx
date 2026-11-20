@@ -13,8 +13,13 @@ import { useEffect, useSyncExternalStore } from "react";
 import { HlsJsVideo } from "@videojs/react/media/hlsjs-video";
 import { VideoPlayer, usePlayer } from "@videojs/react/video";
 
-import { cn } from "@/lib/resolve-class-name";
+import { cn } from "@/lib/player/resolve-class-name";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
+
 import { getServerPlayerPrefs, qualityOptions, readPlayerPrefs, subscribePlayerPrefs } from "@/lib/stores/player-prefs-store";
+import { isUserDataReady, subscribeUserData } from "@/lib/stores/user-data-store";
+import { getAccount, getServerAccount, subscribeAccount } from "@/lib/stores/account-store";
 import { Container } from "@/components/videojs/ui/container";
 import { BufferingIndicator } from "@/components/videojs/ui/buffering-indicator";
 import { ErrorDialog } from "@/components/videojs/ui/error-dialog";
@@ -57,6 +62,42 @@ export function NetflixPlayer({ title, playback }: { title: Title; playback: Pla
   // Settings → Video quality (Auto / Data saver / Standard / High)
   const prefs = useSyncExternalStore(subscribePlayerPrefs, readPlayerPrefs, getServerPlayerPrefs);
   const quality = prefs.quality ?? "auto";
+  // Wait for this profile's saved position and preferences (from Postgres) before starting,
+  // so resume, volume, subtitles and quality are right from the first frame.
+  const ready = useSyncExternalStore(subscribeUserData, isUserDataReady, () => false);
+
+  const account = useSyncExternalStore(subscribeAccount, getAccount, getServerAccount);
+
+  if (!ready) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black" aria-busy="true" aria-label="Loading player">
+        <Loader2 className="size-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Payments on and no paid time left: ask for a plan instead of playing.
+  // (The demo streams are public; a real catalog must also protect its video URLs server side.)
+  if (account.billing && !account.plan) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
+        <h1 className="text-2xl font-bold sm:text-3xl">Choose a plan to watch {title.title}</h1>
+        <p className="max-w-md text-white/70">
+          {account.pendingPayment
+            ? "Your payment is still being confirmed. Check its status on the Account page."
+            : "Pay for a month with JazzCash, EasyPaisa or Raast QR — Basic, Standard or Premium."}
+        </p>
+        <div className="flex gap-3">
+          <Link href="/account" className="rounded-md bg-primary px-5 py-2.5 font-semibold text-primary-foreground hover:bg-primary/85">
+            See plans
+          </Link>
+          <Link href={`/title/${title.id}`} className="rounded-md bg-white/15 px-5 py-2.5 font-semibold hover:bg-white/25">
+            Back
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black">

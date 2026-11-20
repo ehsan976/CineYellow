@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-import { watchHref } from "@/lib/playback";
+import { watchHref } from "@/lib/player/playback";
 import { getHistory, getServerHistory, recentByTitle, subscribeHistory } from "@/lib/stores/watch-history-store";
 
 /** Reactive watch history (empty during prerender/hydration). */

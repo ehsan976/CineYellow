@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Play } from "lucide-react";
 
 import { getEpisodes, metaLine, typeLabels } from "@/lib/data/catalog";
-import { watchHref } from "@/lib/playback";
+import { watchHref } from "@/lib/player/playback";
 import { useApp } from "@/components/providers/app-context";
 import { useWatchHistory } from "@/hooks/use-watch-target";
 import {

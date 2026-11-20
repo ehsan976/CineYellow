@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { getTitle } from "@/lib/data/catalog";
-import { watchHref } from "@/lib/playback";
+import { watchHref } from "@/lib/player/playback";
 import { avatarColors, languages, planLabel, setActiveProfile, updateProfile } from "@/lib/stores/profile-store";
 import { recentByTitle } from "@/lib/stores/watch-history-store";
 import { gridClass } from "@/lib/ui";
@@ -83,7 +83,7 @@ export function ProfilePage() {
           <p className="text-sm text-muted-foreground">Profile</p>
           <h1 className="truncate text-3xl font-black tracking-tight md:text-5xl">{active.name}</h1>
           <span className="mt-3 block h-1 w-16 rounded-full bg-primary" />
-          <p className="mt-3 text-sm font-medium text-primary">{planLabel(active, planInfo.name)}</p>
+          <p className="mt-3 text-sm font-medium text-primary">{planLabel(active, planInfo?.name)}</p>
         </div>
         <dl className="grid grid-cols-3 gap-3 sm:w-auto">
           {stats.map(({ icon: Icon, label, value }) => (
@@ -125,7 +125,7 @@ export function ProfilePage() {
                   <Avatar profile={p} className="size-10 text-lg" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold">{p.name}</span>
-                    <span className="block text-xs text-muted-foreground">{planLabel(p, planInfo.name)}</span>
+                    <span className="block text-xs text-muted-foreground">{planLabel(p, planInfo?.name)}</span>
                   </span>
                   {current && <Check className="size-4 text-primary" />}
                 </button>

@@ -8,7 +8,7 @@ import { PiPButton as PiPButtonPrimitive } from '@videojs/react';
 import { PipEnterIcon as PipEnterIconPrimitive, PipExitIcon as PipExitIconPrimitive } from '@videojs/react/icons';
 
 import { Button } from '@/components/videojs/ui/button';
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export type PiPButtonProps = Omit<PiPButtonPrimitive.Props, 'children'>;
 

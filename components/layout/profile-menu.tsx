@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Bookmark, CircleHelp, CreditCard, LogOut, Settings, User, Users } from "lucide-react";
+import { Bookmark, CircleHelp, CreditCard, LogOut, Settings, Shield, User, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
+import { useSession } from "@/lib/auth/client";
 import { signOut } from "@/lib/stores/auth-store";
 import { avatarColors, planLabel, setActiveProfile } from "@/lib/stores/profile-store";
 import { useApp } from "@/components/providers/app-context";
@@ -28,10 +28,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function ProfileMenu() {
-  const router = useRouter();
   const { myList, hydrated } = useApp();
   const { profiles, active: profile } = useProfiles();
   const { planInfo } = useAccount();
+  const { data: session } = useSession();
+  const isAdmin = session?.user.role === "admin";
   const initial = (p) => (p.name.trim()[0] ?? "?").toUpperCase();
 
   return (
@@ -55,7 +56,7 @@ export function ProfileMenu() {
           </Avatar>
           <span className="min-w-0">
             <span className="block truncate font-semibold text-foreground">{profile.name}</span>
-            <span className="block text-xs font-normal text-primary">{planLabel(profile, planInfo.name)}</span>
+            <span className="block text-xs font-normal text-primary">{planLabel(profile, planInfo?.name)}</span>
           </span>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -115,13 +116,22 @@ export function ProfileMenu() {
               <CircleHelp /> Help Center
             </Link>
           </DropdownMenuItem>
+          {isAdmin && (
+            <DropdownMenuItem asChild>
+              <Link href="/admin">
+                <Shield /> Admin
+              </Link>
+            </DropdownMenuItem>
+          )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           variant="destructive"
-          onSelect={() => {
-            signOut();
-            router.push("/welcome");
+          onSelect={async () => {
+            await signOut();
+            // Full navigation so cached pages from the signed-in session are dropped.
+            // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- full reload drops signed-in cached pages
+            window.location.assign("/welcome");
           }}
         >
           <LogOut /> Sign out

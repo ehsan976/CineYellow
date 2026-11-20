@@ -7,7 +7,7 @@ import '../styles/video/theme.css';
 import { VolumeSlider as VolumeSliderPrimitive } from '@videojs/react';
 
 import { SliderFill, SliderThumb, SliderTrack } from '@/components/videojs/ui/slider';
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export type VolumeSliderProps = Omit<VolumeSliderPrimitive.RootProps, 'children'>;
 

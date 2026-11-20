@@ -9,7 +9,7 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { getTitle, titles } from "@/lib/data/catalog";
-import { getPlayback } from "@/lib/playback";
+import { getPlayback } from "@/lib/player/playback";
 import { NetflixPlayer } from "@/components/player/netflix-player";
 
 export function generateStaticParams() {

@@ -12,7 +12,7 @@ import { PlaybackRateRadioGroup } from '@videojs/react/ui/playback-rate-radio-gr
 
 import { MenuChevron } from '@/components/videojs/ui/menu-chevron';
 import { RadioItem } from '@/components/videojs/ui/radio-item';
-import { cn } from '@/lib/resolve-class-name';
+import { cn } from '@/lib/player/resolve-class-name';
 
 export type PlaybackRateSubmenuProps = Omit<Menu.RootProps, 'children'>;
 

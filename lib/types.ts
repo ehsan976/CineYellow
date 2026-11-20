@@ -82,7 +82,7 @@ export interface NextEpisode {
   href: string;
 }
 
-/** What the player plays for one title / episode (lib/playback.ts). */
+/** What the player plays for one title / episode (lib/player/playback.ts). */
 export interface Playback {
   titleId: string;
   src: string;
@@ -130,11 +130,37 @@ export interface Plan {
   screens: number;
 }
 
+/** "zurvapay" for new payments; "safepay" only on older rows from before the switch. */
+export type PaymentProvider = "zurvapay" | "safepay";
+
+/** Plan time bought through ZurvaPay (from the latest paid row in the `payment` table). */
+export interface AccessInfo {
+  plan: PlanId;
+  /** ISO date the paid time ends. */
+  until: string;
+  /** How it was paid, e.g. "JazzCash", "EasyPaisa" or "Raast QR"; may be empty. */
+  method: string;
+}
+
+/** A payment that was started but isn't confirmed yet (can be re-checked with the gateway). */
+export interface PendingPayment {
+  id: string;
+  plan: PlanId;
+  createdAt: string;
+}
+
 export interface Account {
   email: string;
-  plan: PlanId;
+  /** Current plan. null when billing is on and no paid time is left. */
+  plan: PlanId | null;
   memberSince: string;
   notifications: { newEpisodes: boolean; recommendations: boolean; emailUpdates: boolean };
+  /** True when ZurvaPay is set up: plans must be paid for. */
+  billing: boolean;
+  /** Paid time that hasn't run out yet (billing on). */
+  access: AccessInfo | null;
+  /** Most recent unconfirmed payment, if any. */
+  pendingPayment: PendingPayment | null;
 }
 
 export type QualityPreference = "auto" | "saver" | "standard" | "high";
@@ -160,5 +186,5 @@ export interface AuthResult {
   error?: string;
 }
 
-/** Subscriber callback used by every localStorage-backed store. */
+/** Subscriber callback used by the external stores in lib/stores (useSyncExternalStore). */
 export type Listener = () => void;

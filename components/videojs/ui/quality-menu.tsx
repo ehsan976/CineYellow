@@ -12,7 +12,7 @@ import { QualityRadioGroup } from '@videojs/react/ui/quality-radio-group';
 
 import { MenuChevron } from '@/components/videojs/ui/menu-chevron';
 import { RadioItem } from '@/components/videojs/ui/radio-item';
-import { cn } from '@/lib/resolve-class-name';
+import { cn } from '@/lib/player/resolve-class-name';
 
 export type QualityMenuProps = Omit<Menu.RootProps, 'children'>;
 

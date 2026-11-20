@@ -16,7 +16,7 @@ import { PlayButton } from "@/components/videojs/ui/play-button";
 import { SeekButton } from "@/components/videojs/ui/seek-button";
 import { TimeSlider } from "@/components/videojs/ui/time-slider";
 import { VolumePopover } from "@/components/videojs/ui/volume-popover";
-import { cn } from "@/lib/resolve-class-name";
+import { cn } from "@/lib/player/resolve-class-name";
 import { AudioSubtitlesMenu } from "@/components/player/audio-subtitles-menu";
 import { EpisodesMenu } from "@/components/player/episodes-menu";
 import { NetflixSettingsMenu } from "@/components/player/netflix-settings-menu";

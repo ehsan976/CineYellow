@@ -1,106 +1,85 @@
-// Sign-in state. This is the one place to connect the real auth API:
-// replace the bodies of signIn / signUp / signOut with API calls (keep the return shape).
-//
-// Two pieces of state:
-//  - a `cineyellow_session` cookie, read by proxy.js to send signed-out visitors to /login
-//    before any page renders (like Netflix);
-//  - the profile info in localStorage (only when "Remember me" is on).
-import type { AuthResult, AuthState, Listener } from "@/lib/types";
+// Sign-in actions, backed by Better Auth (lib/auth/server.ts on the server, lib/auth/client.ts here).
+// Forms call these and get back { ok, error } with a message that's safe to show.
+import type { AuthResult, PlanId } from "@/lib/types";
+import { authClient } from "@/lib/auth/client";
+import { flushProgress } from "@/lib/stores/user-data-store";
 
+export { safeNext } from "@/lib/auth/routes";
 
-export const SESSION_COOKIE = "cineyellow_session";
-const KEY = "cineyellow:auth";
-const SIGNED_OUT: AuthState = Object.freeze({ signedIn: false, email: null, name: null });
-const listeners = new Set<Listener>();
-let cache: AuthState | null = null;
+type AuthError = { code?: string; message?: string; status?: number } | null | undefined;
 
-function hasSessionCookie() {
-  return document.cookie.split("; ").some((c) => c === `${SESSION_COOKIE}=1`);
+/** Better Auth error codes → friendly text. */
+function friendly(error: AuthError, fallback: string): string {
+  const code = error?.code ?? "";
+  if (code === "INVALID_EMAIL_OR_PASSWORD" || code === "INVALID_PASSWORD" || code === "CREDENTIAL_ACCOUNT_NOT_FOUND")
+    return "Incorrect email or password. Please try again.";
+  if (code.startsWith("USER_ALREADY_EXISTS")) return "An account with this email already exists. Sign in instead.";
+  if (code === "PASSWORD_TOO_SHORT") return "Use at least 8 characters.";
+  if (code === "PASSWORD_TOO_LONG") return "That password is too long.";
+  if (code === "INVALID_EMAIL") return "Please enter a valid email address.";
+  if (code === "BANNED_USER") return "Your account has been suspended. Please contact support.";
+  if (error?.status === 429) return "Too many attempts. Wait a minute and try again.";
+  if (!error?.status) return "Can't reach the server. Check your connection and try again.";
+  return error?.message || fallback;
 }
 
-function setSessionCookie(remember: boolean) {
-  const maxAge = remember ? `; max-age=${60 * 60 * 24 * 30}` : ""; // 30 days, or until the browser closes
-  document.cookie = `${SESSION_COOKIE}=1; path=/; samesite=lax${maxAge}`;
-}
-
-function clearSessionCookie() {
-  document.cookie = `${SESSION_COOKIE}=; path=/; max-age=0; samesite=lax`;
-}
-
-function load(): AuthState {
-  if (!hasSessionCookie()) return SIGNED_OUT;
+async function run(call: () => Promise<{ error: AuthError }>, fallback: string): Promise<AuthResult> {
   try {
-    const parsed = JSON.parse(localStorage.getItem(KEY) ?? sessionStorage.getItem(KEY) ?? "null");
-    if (parsed && parsed.signedIn && parsed.email) return parsed;
+    const { error } = await call();
+    return error ? { ok: false, error: friendly(error, fallback) } : { ok: true };
   } catch {
-    // fall through
+    return { ok: false, error: friendly(null, fallback) };
   }
-  return SIGNED_OUT;
 }
 
-function persist(next: AuthState, remember = true) {
-  cache = next;
+/** "Remember me" off → the session cookie ends when the browser closes. */
+export function signIn({ email, password, remember = true }: { email: string; password: string; remember?: boolean }) {
+  return run(() => authClient.signIn.email({ email, password, rememberMe: remember }), "Couldn't sign you in.");
+}
+
+/**
+ * Demo mode: `plan` is stored on Better Auth's user row (an additional field, see lib/auth/server.ts).
+ * With ZurvaPay on, leave it out — the plan comes from a payment instead.
+ */
+export function signUp({ name, email, password, plan }: { name: string; email: string; password: string; plan?: PlanId }) {
+  const body = { name, email, password, ...(plan ? { plan } : {}) } as Parameters<typeof authClient.signUp.email>[0];
+  return run(() => authClient.signUp.email(body), "Couldn't create your account.");
+}
+
+/** Leaves the site for Google; Better Auth brings the user back to `next` once signed in. */
+export function signInWithGoogle(next: string) {
+  return run(
+    () => authClient.signIn.social({ provider: "google", callbackURL: next, errorCallbackURL: "/login" }),
+    "Couldn't start Google sign-in."
+  );
+}
+
+// Set while the user signs out or deletes their account on purpose, so AppProvider's
+// "session ended" watch doesn't race the page's own redirect to /welcome.
+let leaving = false;
+export const isLeaving = () => leaving;
+
+export async function signOut() {
+  leaving = true;
+  // Save the last few seconds of watch progress while the session still exists.
+  await flushProgress().catch(() => {});
   try {
-    localStorage.removeItem(KEY);
-    sessionStorage.removeItem(KEY);
-    if (next.signedIn) (remember ? localStorage : sessionStorage).setItem(KEY, JSON.stringify(next));
+    await authClient.signOut();
   } catch {
-    // Storage blocked — stays signed in for this page only.
+    // Already signed out or offline — the proxy treats a missing session the same way.
   }
-  if (next.signedIn) setSessionCookie(remember);
-  else clearSessionCookie();
-  listeners.forEach((listener) => listener());
 }
 
-export function getAuth(): AuthState {
-  if (cache === null) cache = load();
-  return cache;
+export function changePassword({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) {
+  return run(
+    () => authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions: true }),
+    "Couldn't change your password."
+  );
 }
 
-export function getServerAuth(): AuthState {
-  return SIGNED_OUT;
-}
-
-export function subscribeAuth(listener: Listener) {
-  listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      cache = null;
-      listener();
-    }
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
-}
-
-/** Demo sign-in: any valid email + password (6+ chars) works. */
-export async function signIn({ email, password, remember = true }: { email: string; password: string; remember?: boolean }): Promise<AuthResult> {
-  if (!email || !password || password.length < 6) return { ok: false, error: "Incorrect email or password." };
-  persist({ signedIn: true, email, name: email.split("@")[0] }, remember);
-  return { ok: true };
-}
-
-/** Demo sign-in code: any 4 digits work. */
-export async function signInWithCode({ email, code, remember = true }: { email: string; code: string; remember?: boolean }): Promise<AuthResult> {
-  if (!email || !/^\d{4}$/.test(code)) return { ok: false, error: "That code isn't right. Check it and try again." };
-  persist({ signedIn: true, email, name: email.split("@")[0] }, remember);
-  return { ok: true };
-}
-
-export async function signUp({ name, email, password }: { name: string; email: string; password: string }): Promise<AuthResult> {
-  if (!name || !email || !password) return { ok: false, error: "Please fill in every field." };
-  persist({ signedIn: true, email, name });
-  return { ok: true };
-}
-
-export function signOut() {
-  persist(SIGNED_OUT);
-}
-
-/** Only allow same-site paths as a post-login redirect. */
-export function safeNext(next: string | null | undefined): string {
-  return typeof next === "string" && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+export async function deleteAccount() {
+  leaving = true;
+  const result = await run(() => authClient.deleteUser(), "Couldn't delete your account.");
+  if (!result.ok) leaving = false;
+  return result;
 }

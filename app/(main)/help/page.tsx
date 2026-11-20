@@ -1,4 +1,4 @@
-import { HelpPage } from "@/components/account/help-page";
+import { HelpPage } from "@/components/help/help-page";
 
 export const metadata = { title: "Help Center" };
 

@@ -1,38 +1,18 @@
-// Player preferences shared by the player (components/player/preferences.jsx) and /settings.
+// Player preferences shared by the player (components/player/preferences.tsx) and /settings.
+// Stored per profile in Postgres (profile.player_prefs) via user-data-store; saves are debounced.
 // Shape: { volume, muted, rate, audioLanguage, subtitleLanguage ("off" | code), quality }.
-import type { Listener, PlayerPrefs, QualityPreference } from "@/lib/types";
+import type { PlayerPrefs, QualityPreference } from "@/lib/types";
+import { EMPTY, getActivePrefs, setActivePrefs, subscribeUserData } from "@/lib/stores/user-data-store";
 
-
-const KEY = "cineyellow:player-prefs";
-const EMPTY: PlayerPrefs = Object.freeze({});
-const listeners = new Set<Listener>();
-let cache: PlayerPrefs | null = null;
-
-export function readPlayerPrefs(): PlayerPrefs {
-  if (cache === null) {
-    try {
-      const value = JSON.parse(localStorage.getItem(KEY) ?? "null");
-      cache = value && typeof value === "object" ? value : EMPTY;
-    } catch {
-      cache = EMPTY;
-    }
-  }
-  return cache;
-}
+export const readPlayerPrefs = getActivePrefs;
 
 export function getServerPlayerPrefs(): PlayerPrefs {
-  return EMPTY;
+  return EMPTY.prefs;
 }
 
 /** Replace all preferences. */
 export function writePlayerPrefs(prefs: PlayerPrefs) {
-  cache = prefs;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(prefs));
-  } catch {
-    // Storage unavailable; keep it in memory.
-  }
-  listeners.forEach((listener) => listener());
+  setActivePrefs(prefs);
 }
 
 /** Merge a patch; `undefined` values remove a key. */
@@ -42,20 +22,7 @@ export function updatePlayerPrefs(patch: Partial<PlayerPrefs>) {
   writePlayerPrefs(next);
 }
 
-export function subscribePlayerPrefs(listener: Listener) {
-  listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      cache = null;
-      listener();
-    }
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
-}
+export const subscribePlayerPrefs = subscribeUserData;
 
 /** Video quality preference → hls.js source options (see Video.js "Media sources"). */
 export const qualityOptions: Record<QualityPreference, { label: string; hint: string; source: Record<string, unknown> }> = {

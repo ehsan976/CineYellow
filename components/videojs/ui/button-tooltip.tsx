@@ -7,7 +7,7 @@ import '../styles/video/theme.css';
 import { Tooltip } from '@videojs/react';
 import type { ReactElement, ReactNode } from 'react';
 
-import { cn } from '@/lib/resolve-class-name';
+import { cn } from '@/lib/player/resolve-class-name';
 
 export interface ButtonTooltipProps extends Omit<Tooltip.RootProps, 'children'> {
   children: ReactElement;

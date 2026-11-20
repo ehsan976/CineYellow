@@ -9,9 +9,8 @@ import { Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { plans, updateAccount } from "@/lib/stores/account-store";
-import { safeNext, signIn, signInWithCode, signUp } from "@/lib/stores/auth-store";
-import { setActiveProfile, updateProfile } from "@/lib/stores/profile-store";
+import { plans } from "@/lib/stores/account-store";
+import { safeNext, signIn, signInWithGoogle, signUp } from "@/lib/stores/auth-store";
 import { AuthError, FloatingInput, FloatingPassword } from "@/components/auth/auth-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -20,7 +19,7 @@ const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 const primaryBtn =
   "flex h-11 w-full items-center justify-center gap-2 rounded-md bg-primary text-base font-semibold text-primary-foreground transition hover:bg-primary/85 disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black focus-visible:outline-none";
 const secondaryBtn =
-  "flex h-11 w-full items-center justify-center rounded-md bg-white/20 text-base font-semibold text-white transition hover:bg-white/30 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none";
+  "flex h-11 w-full items-center justify-center gap-3 rounded-md bg-white/20 disabled:opacity-60 text-base font-semibold text-white transition hover:bg-white/30 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none";
 
 function Banner({ children }: { children?: ReactNode }) {
   if (!children) return null;
@@ -44,61 +43,79 @@ function RememberMe({ checked, onChange }: { checked: boolean; onChange: (checke
   );
 }
 
-export function LoginForm() {
-  const next = safeNext(useSearchParams().get("next"));
-  const [mode, setMode] = useState("password"); // "password" | "code"
+function GoogleButton({ next, label }: { next: string; label: string }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      className={secondaryBtn}
+      onClick={async () => {
+        setBusy(true);
+        const result = await signInWithGoogle(next);
+        // On success the browser is already leaving for Google.
+        if (!result.ok) {
+          setBusy(false);
+          toast.error(result.error);
+        }
+      }}
+    >
+      {busy ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon />}
+      {label}
+    </button>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 48 48" aria-hidden className="size-5">
+      <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 13 4 4 13 4 24s9 20 20 20 20-9 20-20c0-1.3-.1-2.6-.4-3.9z" />
+      <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 8 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+      <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2c-2 1.5-4.5 2.4-7.2 2.4-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+      <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.6-.4-3.9z" />
+    </svg>
+  );
+}
+
+/** Text for ?error= when Google sends the user back without signing in. */
+const oauthErrors: Record<string, string> = {
+  access_denied: "Google sign-in was cancelled.",
+  account_not_linked: "This email already has a password account. Sign in with your password.",
+  state_not_found: "Google sign-in expired or was opened directly. Please press the Google button again.",
+  state_mismatch: "Google sign-in expired. Please press the Google button again.",
+  state_security_mismatch: "Google sign-in expired. Please press the Google button again.",
+  banned_user: "Your account has been suspended. Please contact support.",
+};
+
+export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
+  const params = useSearchParams();
+  const next = safeNext(params.get("next"));
+  const oauthError = params.get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [code, setCode] = useState("");
-  const [codeSent, setCodeSent] = useState(false);
   const [remember, setRemember] = useState(true);
   const [tried, setTried] = useState(false);
-  const [banner, setBanner] = useState("");
+  const [banner, setBanner] = useState(() =>
+    oauthError ? (oauthErrors[oauthError.toLowerCase()] ?? "Google sign-in didn't work. Please try again.") : ""
+  );
   const [busy, setBusy] = useState(false);
 
   const emailError = tried && !isEmail(email) && "Please enter a valid email address.";
-  const passwordError = tried && mode === "password" && password.length < 6 && "Your password must contain between 6 and 60 characters.";
-  const codeError = tried && codeSent && !/^\d{4}$/.test(code) && "Enter the 4-digit code.";
-
-  const done = () => {
-    updateAccount({ email: email.trim() });
-    // Full navigation (not router.replace) so the server and the client cache see the new session.
-    window.location.assign(next);
-  };
-
-  const switchMode = (m) => {
-    setMode(m);
-    setTried(false);
-    setBanner("");
-    setCode("");
-    setCodeSent(false);
-  };
+  const passwordError = tried && !password && "Please enter your password.";
 
   const submit = async (e) => {
     e.preventDefault();
     setTried(true);
     setBanner("");
-    if (!isEmail(email)) return;
-
-    if (mode === "password") {
-      if (password.length < 6) return;
-      setBusy(true);
-      const result = await signIn({ email: email.trim(), password, remember });
-      setBusy(false);
-      return result.ok ? done() : setBanner(result.error);
-    }
-
-    if (!codeSent) {
-      setCodeSent(true);
-      setTried(false);
-      toast.success("Sign-in code sent", { description: email.trim() });
-      return;
-    }
-    if (!/^\d{4}$/.test(code)) return;
+    if (!isEmail(email) || !password) return;
     setBusy(true);
-    const result = await signInWithCode({ email: email.trim(), code, remember });
-    setBusy(false);
-    return result.ok ? done() : setBanner(result.error);
+    const result = await signIn({ email: email.trim(), password, remember });
+    if (!result.ok) {
+      setBusy(false);
+      return setBanner(result.error);
+    }
+    // Full navigation (not router.replace) so the server and the client cache see the new session.
+    window.location.assign(next);
   };
 
   return (
@@ -116,79 +133,34 @@ export function LoginForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             invalid={!!emailError}
-            disabled={mode === "code" && codeSent}
             aria-describedby={emailError ? "login-email-error" : undefined}
           />
           <AuthError id="login-email-error">{emailError}</AuthError>
         </div>
 
-        {mode === "password" && (
-          <div>
-            <FloatingPassword
-              id="login-password"
-              label="Password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              invalid={!!passwordError}
-              aria-describedby={passwordError ? "login-password-error" : undefined}
-            />
-            <AuthError id="login-password-error">{passwordError}</AuthError>
-          </div>
-        )}
-
-        {mode === "code" && codeSent && (
-          <div>
-            <p className="mb-3 text-sm text-white/70">
-              Enter the code we sent to <span className="font-semibold text-white">{email.trim()}</span>.
-            </p>
-            <FloatingInput
-              id="login-code"
-              label="4-digit code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoFocus
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 4))}
-              invalid={!!codeError}
-              inputClassName="text-xl tracking-[0.6em]"
-            />
-            <AuthError>{codeError}</AuthError>
-            <button
-              type="button"
-              className="mt-2 text-sm text-white/70 underline-offset-2 hover:text-white hover:underline"
-              onClick={() => toast.success("New code sent", { description: email.trim() })}
-            >
-              Resend code
-            </button>
-          </div>
-        )}
+        <div>
+          <FloatingPassword
+            id="login-password"
+            label="Password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            invalid={!!passwordError}
+            aria-describedby={passwordError ? "login-password-error" : undefined}
+          />
+          <AuthError id="login-password-error">{passwordError}</AuthError>
+        </div>
 
         <button type="submit" disabled={busy} className={primaryBtn}>
           {busy && <Loader2 className="size-4 animate-spin" />}
-          {mode === "code" && !codeSent ? "Send Sign-In Code" : "Sign In"}
+          Sign In
         </button>
 
-        <p className="text-center text-base text-white/70">OR</p>
-
-        <button type="button" className={secondaryBtn} onClick={() => switchMode(mode === "password" ? "code" : "password")}>
-          {mode === "password" ? "Use a Sign-In Code" : "Use Password"}
-        </button>
-
-        {mode === "password" && (
-          <p className="text-center">
-            <button
-              type="button"
-              className="text-base text-white underline-offset-2 hover:underline"
-              onClick={() =>
-                isEmail(email)
-                  ? toast.success("Password reset link sent", { description: email.trim() })
-                  : (setTried(true), toast("Enter your email first", { description: "We'll send the reset link there." }))
-              }
-            >
-              Forgot password?
-            </button>
-          </p>
+        {googleEnabled && (
+          <>
+            <p className="text-center text-base text-white/70">OR</p>
+            <GoogleButton next={next} label="Sign in with Google" />
+          </>
         )}
 
         <RememberMe checked={remember} onChange={setRemember} />
@@ -224,7 +196,7 @@ const strength = [
   { label: "Strong", bar: "bg-emerald-400" },
 ];
 
-export function SignupForm() {
+export function SignupForm({ googleEnabled = false, billingEnabled = false }: { googleEnabled?: boolean; billingEnabled?: boolean }) {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   // "Get Started" on the landing page passes the email along.
@@ -257,13 +229,15 @@ export function SignupForm() {
     setBusy(true);
     const name = form.name.trim().slice(0, 24);
     const email = form.email.trim();
-    const result = await signUp({ name, email, password: form.password });
-    setBusy(false);
-    if (!result.ok) return toast.error(result.error);
-    updateAccount({ email, plan: form.plan, memberSince: new Date().toISOString().slice(0, 10) });
-    updateProfile("guest", { name });
-    setActiveProfile("guest");
-    window.location.assign(next);
+    // Better Auth creates the user and its databaseHooks add the profiles. Demo mode stores the
+    // chosen plan on the user; with ZurvaPay on, the Account page asks for payment.
+    const result = await signUp({ name, email, password: form.password, plan: billingEnabled ? undefined : form.plan });
+    if (!result.ok) {
+      setBusy(false);
+      return toast.error(result.error);
+    }
+    // Billing on: straight to the Account page with the payment dialog open for the chosen plan.
+    window.location.assign(billingEnabled ? `/account?plan=${form.plan}` : next);
   };
 
   return (
@@ -341,6 +315,13 @@ export function SignupForm() {
         <button type="submit" disabled={busy} className={primaryBtn}>
           {busy && <Loader2 className="size-4 animate-spin" />} Create account
         </button>
+
+        {googleEnabled && (
+          <>
+            <p className="text-center text-base text-white/70">OR</p>
+            <GoogleButton next={next} label="Sign up with Google" />
+          </>
+        )}
       </form>
 
       <p className="mt-6 text-base text-white/70">

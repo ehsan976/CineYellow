@@ -7,7 +7,7 @@ import '../styles/video/theme.css';
 import { SeekIndicator as SeekIndicatorPrimitive } from '@videojs/react';
 import { ChevronIcon as ChevronIconPrimitive } from '@videojs/react/icons';
 
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export type SeekIndicatorProps = Omit<SeekIndicatorPrimitive.RootProps, 'children'>;
 

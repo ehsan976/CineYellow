@@ -12,7 +12,7 @@ import {
 } from '@videojs/react/icons';
 
 import { Button } from '@/components/videojs/ui/button';
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export type MuteButtonProps = Omit<MuteButtonPrimitive.Props, 'children'>;
 

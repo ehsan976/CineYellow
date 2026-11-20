@@ -6,7 +6,7 @@ import '../styles/video/captions.css';
 import '../styles/video/theme.css';
 import { Poster as PosterPrimitive } from '@videojs/react';
 
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export interface PosterProps extends Omit<PosterPrimitive.ImageProps, 'children' | 'render'> {
   /** Draws the poster image in place of the one the skin renders. */

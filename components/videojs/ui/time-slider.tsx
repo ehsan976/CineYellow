@@ -10,7 +10,7 @@ import { Slider as SliderPrimitive, TimeSlider as TimeSliderPrimitive } from '@v
 import { SpinnerIcon as SpinnerIconPrimitive } from '@videojs/react/icons';
 
 import { SliderBuffer, SliderFill, SliderThumb, SliderTrack } from '@/components/videojs/ui/slider';
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export interface TimeSliderProps extends Omit<TimeSliderPrimitive.RootProps, 'children'> {
   previewOverflow?: SliderPreviewOverflow | undefined;

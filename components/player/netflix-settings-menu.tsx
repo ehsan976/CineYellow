@@ -5,7 +5,7 @@ import { Menu } from "@videojs/react";
 import { PlaybackRateSubmenu } from "@/components/videojs/ui/playback-rate-submenu";
 import { QualityMenu } from "@/components/videojs/ui/quality-menu";
 import { SettingsMenu } from "@/components/videojs/ui/settings-menu";
-import { cn } from "@/lib/resolve-class-name";
+import { cn } from "@/lib/player/resolve-class-name";
 import { setAutoplayNext, useAutoplayNext, usePlayerInfo } from "@/components/player/player-context";
 
 /** Video.js settings menu: Quality + Speed submenus, plus our "Autoplay next episode" switch. */

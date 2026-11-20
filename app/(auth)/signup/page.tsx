@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 
+import { googleEnabled } from "@/lib/auth/server";
+import { billingEnabled } from "@/lib/payments/config";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { SignupForm } from "@/components/auth/auth-forms";
 
@@ -9,7 +11,7 @@ export default function SignupPage() {
   return (
     <AuthShell>
       <Suspense>
-        <SignupForm />
+        <SignupForm googleEnabled={googleEnabled} billingEnabled={billingEnabled} />
       </Suspense>
     </AuthShell>
   );

@@ -1,53 +1,16 @@
-// Tiny external store for "My List", persisted in localStorage.
-// Used with React's useSyncExternalStore; the server snapshot is always empty.
-import type { Listener } from "@/lib/types";
+// "My List" for the active profile, stored in Postgres (my_list table) via user-data-store.
+// Same exports as before, so useSyncExternalStore callers didn't change.
+import { EMPTY, getActiveList, setActiveList, subscribeUserData } from "@/lib/stores/user-data-store";
 
-
-const KEY = "cineyellow:my-list";
-const EMPTY: string[] = [];
-const listeners = new Set<Listener>();
-let cache: string[] | null = null;
-
-function load(): string[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(KEY) ?? "[]");
-    return Array.isArray(parsed) ? parsed : EMPTY;
-  } catch {
-    return EMPTY;
-  }
-}
-
-export function getMyList(): string[] {
-  if (cache === null) cache = load();
-  return cache;
-}
+export const getMyList = getActiveList;
 
 export function getServerMyList(): string[] {
-  return EMPTY;
+  return EMPTY.list;
 }
 
+/** Replace the active profile's list (newest first). Saved to the database in the background. */
 export function setMyList(next: string[]) {
-  cache = next;
-  try {
-    localStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    // Storage blocked (private mode etc.) — keep the in-memory list.
-  }
-  listeners.forEach((listener) => listener());
+  setActiveList(next);
 }
 
-export function subscribeMyList(listener: Listener) {
-  listeners.add(listener);
-  // Keep tabs in sync.
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      cache = null;
-      listener();
-    }
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
-}
+export const subscribeMyList = subscribeUserData;

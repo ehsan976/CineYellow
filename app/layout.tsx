@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        {/* Navbar + footer live in app/(main)/layout.jsx; the player and sign-in pages have none */}
+        {/* Navbar + footer live in app/(main)/layout.tsx; the player and sign-in pages have none */}
         <AppProvider>{children}</AppProvider>
       </body>
     </html>

@@ -12,7 +12,7 @@ import type { ClassValue } from 'cn';
 
 import { Button } from '@/components/videojs/ui/button';
 import { ButtonTooltip } from '@/components/videojs/ui/button-tooltip';
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export interface SettingsMenuProps extends Omit<Menu.RootProps, 'children'> {
   className?: ClassValue;

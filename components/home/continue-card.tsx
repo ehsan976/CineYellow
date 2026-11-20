@@ -7,7 +7,7 @@ import { Play } from "lucide-react";
 
 import { getTitle } from "@/lib/data/catalog";
 import { continueWatching } from "@/lib/data/content";
-import { watchHref } from "@/lib/playback";
+import { watchHref } from "@/lib/player/playback";
 import { recentByTitle } from "@/lib/stores/watch-history-store";
 import { useWatchHistory } from "@/hooks/use-watch-target";
 import { Card, CardContent } from "@/components/ui/card";

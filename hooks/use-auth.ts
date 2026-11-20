@@ -1,10 +1,15 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import type { AuthState } from "@/lib/types";
+import { useSession } from "@/lib/auth/client";
 
-import { getAuth, getServerAuth, subscribeAuth } from "@/lib/stores/auth-store";
-
-/** Current sign-in state (signed out during prerender/hydration). */
-export function useAuth() {
-  return useSyncExternalStore(subscribeAuth, getAuth, getServerAuth);
+/** Current sign-in state from Better Auth (signed out while the session is loading). */
+export function useAuth(): AuthState & { pending: boolean } {
+  const { data, isPending } = useSession();
+  return {
+    signedIn: Boolean(data?.user),
+    email: data?.user.email ?? null,
+    name: data?.user.name ?? null,
+    pending: isPending,
+  };
 }

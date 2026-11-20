@@ -1,5 +1,5 @@
 // Homepage layout: which catalog titles appear in which row.
-// Every item points at a title in lib/catalog.js by `titleId`.
+// Every item points at a title in lib/data/catalog.ts by `titleId`.
 import type { AppNotification, ContinueItem, FeaturedItem, NavLink, Row } from "@/lib/types";
 
 

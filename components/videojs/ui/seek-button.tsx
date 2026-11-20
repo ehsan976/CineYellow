@@ -8,7 +8,7 @@ import { SeekButton as SeekButtonPrimitive } from '@videojs/react';
 import { SeekIcon as SeekIconPrimitive } from '@videojs/react/icons';
 
 import { Button } from '@/components/videojs/ui/button';
-import { cn, resolveClassName } from '@/lib/resolve-class-name';
+import { cn, resolveClassName } from '@/lib/player/resolve-class-name';
 
 export type SeekButtonProps = Omit<SeekButtonPrimitive.Props, 'children'>;
 

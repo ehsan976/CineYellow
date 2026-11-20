@@ -1,36 +1,54 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { getSessionCookie } from "better-auth/cookies";
+
+import { auth } from "@/lib/auth/server";
+import { ADMIN_PAGES, SIGNED_OUT_PAGES, isPublicPage, loginUrl, matchesPage, safeNext } from "@/lib/auth/routes";
 
 // Like Netflix: signed-out visitors get the landing page (/welcome) at the site root and the
-// sign-in page for any other link. The session cookie is set/cleared by lib/auth-store.js
-// (swap for your API's session later).
-const SESSION_COOKIE = "cineyellow_session";
-const SIGNED_OUT_PAGES = ["/welcome", "/login", "/signup"];
-const PUBLIC_PAGES = [...SIGNED_OUT_PAGES, "/help"];
+// sign-in page for any other link. Proxy runs on Node.js, so the session is verified here
+// with Better Auth (a forged or expired cookie counts as signed out) before any page renders.
+async function getSession(request: NextRequest) {
+  // No session cookie at all: skip the lookup.
+  if (!getSessionCookie(request)) return null;
+  try {
+    return await auth.api.getSession({ headers: request.headers, returnHeaders: true });
+  } catch {
+    return null;
+  }
+}
 
-const matches = (pathname, pages) => pages.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+/** Role comes from the admin plugin's `user.role` column (in the session cookie cache). */
+const isAdmin = (session: { user?: unknown } | null | undefined) =>
+  (session?.user as { role?: string | null } | undefined)?.role === "admin";
 
-export function proxy(request) {
+export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const signedIn = request.cookies.get(SESSION_COOKIE)?.value === "1";
+  const result = await getSession(request);
+  const signedIn = Boolean(result?.response);
 
-  if (!signedIn && !matches(pathname, PUBLIC_PAGES)) {
-    if (pathname === "/") return NextResponse.redirect(new URL("/welcome", request.url));
-    const url = new URL("/login", request.url);
-    url.searchParams.set("next", pathname + search);
-    return NextResponse.redirect(url);
+  let response: NextResponse;
+  if (!signedIn && !isPublicPage(pathname)) {
+    const target = pathname === "/" ? "/welcome" : loginUrl(pathname + search);
+    response = NextResponse.redirect(new URL(target, request.url));
+  } else if (signedIn && matchesPage(pathname, SIGNED_OUT_PAGES)) {
+    const next = safeNext(request.nextUrl.searchParams.get("next"));
+    response = NextResponse.redirect(new URL(next, request.url));
+  } else if (signedIn && matchesPage(pathname, ADMIN_PAGES) && !isAdmin(result.response)) {
+    response = NextResponse.redirect(new URL("/", request.url));
+  } else {
+    response = NextResponse.next();
   }
 
-  // Already signed in: skip the landing and sign-in pages.
-  if (signedIn && matches(pathname, SIGNED_OUT_PAGES)) {
-    const next = request.nextUrl.searchParams.get("next");
-    const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
-    return NextResponse.redirect(new URL(target, request.url));
-  }
-
-  return NextResponse.next();
+  // Pass on refreshed or cleared session cookies (e.g. a renewed cookie cache).
+  result?.headers?.getSetCookie().forEach((cookie) => response.headers.append("set-cookie", cookie));
+  return response;
 }
 
 export const config = {
-  // Everything except Next internals and static files.
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|txt|xml|vtt)$).*)"],
+  // Skip API routes (Better Auth's endpoints, and /api/me which checks the session itself and
+  // answers 401 instead of redirecting), Next.js internals and static files.
+  matcher: [
+    "/((?!api/|_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|txt|xml|vtt)$).*)",
+  ],
 };

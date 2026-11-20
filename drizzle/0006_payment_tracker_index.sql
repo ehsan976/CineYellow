@@ -1,0 +1,1 @@
+CREATE INDEX "payment_provider_txn_idx" ON "payment" USING btree ("provider_txn_id");

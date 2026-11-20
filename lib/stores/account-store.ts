@@ -1,68 +1,33 @@
-// Demo account data (email, plan, notifications), persisted in localStorage.
-// When the real API arrives, replace load()/persist() — pages only use these exports.
-import type { Account, Listener, Plan, PlanId } from "@/lib/types";
+// Account data: email and member-since come from Better Auth's user row; the plan from paid
+// ZurvaPay payments (or, in demo mode, the user's `plan` field); notifications from
+// the user_settings table — all loaded via /api/me.
+import type { Account, Plan, PlanId } from "@/lib/types";
+import { PLAN_PRICES_PKR, formatPkr } from "@/lib/user-data";
+import {
+  getServerUserDataState,
+  getUserDataState,
+  subscribeUserData,
+  updateAccount as update,
+} from "@/lib/stores/user-data-store";
 
-
-const KEY = "cineyellow:account";
-
+/** Prices come from PLAN_PRICES_PKR (lib/user-data.ts), the same numbers the server charges. */
 export const plans: Record<PlanId, Plan> = {
-  basic: { name: "Basic", price: "$6.99", quality: "720p HD", screens: 1 },
-  standard: { name: "Standard", price: "$11.99", quality: "1080p Full HD", screens: 2 },
-  premium: { name: "Premium", price: "$17.99", quality: "4K Ultra HD", screens: 4 },
+  basic: { name: "Basic", price: formatPkr(PLAN_PRICES_PKR.basic), quality: "720p HD", screens: 1 },
+  standard: { name: "Standard", price: formatPkr(PLAN_PRICES_PKR.standard), quality: "1080p Full HD", screens: 2 },
+  premium: { name: "Premium", price: formatPkr(PLAN_PRICES_PKR.premium), quality: "4K Ultra HD", screens: 4 },
 };
 
-const DEFAULTS: Account = Object.freeze({
-  email: "guest@cineyellow.app",
-  plan: "premium",
-  memberSince: "2026-01-15",
-  notifications: { newEpisodes: true, recommendations: true, emailUpdates: false },
-});
-
-const listeners = new Set<Listener>();
-let cache: Account | null = null;
-
-function load(): Account {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(KEY) ?? "null");
-    if (parsed && typeof parsed === "object" && parsed.email) {
-      return { ...DEFAULTS, ...parsed, notifications: { ...DEFAULTS.notifications, ...parsed.notifications } };
-    }
-  } catch {
-    // fall through
-  }
-  return DEFAULTS;
-}
-
 export function getAccount(): Account {
-  if (cache === null) cache = load();
-  return cache;
+  return getUserDataState().account;
 }
 
 export function getServerAccount(): Account {
-  return DEFAULTS;
+  return getServerUserDataState().account;
 }
 
-export function subscribeAccount(listener: Listener) {
-  listeners.add(listener);
-  const onStorage = (e: StorageEvent) => {
-    if (e.key === KEY) {
-      cache = null;
-      listener();
-    }
-  };
-  window.addEventListener("storage", onStorage);
-  return () => {
-    listeners.delete(listener);
-    window.removeEventListener("storage", onStorage);
-  };
-}
+export const subscribeAccount = subscribeUserData;
 
-export function updateAccount(patch: Partial<Account>) {
-  cache = { ...getAccount(), ...patch };
-  try {
-    localStorage.setItem(KEY, JSON.stringify(cache));
-  } catch {
-    // Storage blocked — keep in memory.
-  }
-  listeners.forEach((listener) => listener());
+/** Plan and notification changes are saved to the database; rolled back with a toast on failure. */
+export function updateAccount(patch: Partial<Pick<Account, "plan" | "notifications">>) {
+  update(patch);
 }
