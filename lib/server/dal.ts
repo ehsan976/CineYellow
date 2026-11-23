@@ -78,7 +78,7 @@ export async function getUserData(user: CurrentUser): Promise<UserData> {
       db.select({ id: sessionTable.id }).from(sessionTable).where(eq(sessionTable.token, user.sessionToken)).limit(1),
       db.select().from(myList).where(inArray(myList.profileId, ownProfileIds)).orderBy(desc(myList.addedAt)),
       db.select().from(watchHistory).where(inArray(watchHistory.profileId, ownProfileIds)),
-      // ZurvaPay: paid time that hasn't ended, and the latest unconfirmed payment from the last
+      // Safepay: paid time that hasn't ended, and the latest unconfirmed payment from the last
       // day (so the account page can show it and offer "Check status").
       billingEnabled
         ? db
@@ -127,7 +127,7 @@ export async function getUserData(user: CurrentUser): Promise<UserData> {
   const access: AccessInfo | null =
     paid?.periodEnd && isPlanId(paid.plan) ? { plan: paid.plan, until: paid.periodEnd.toISOString(), method: paid.method } : null;
   // A checkout started before the payment that gave the current access was left unfinished on
-  // ZurvaPay; showing it as "waiting for confirmation" would only confuse.
+  // Safepay; showing it as "waiting for confirmation" would only confuse.
   const supersededByPaid = Boolean(pending && paid && pending.createdAt < paid.createdAt);
   const pendingPayment: PendingPayment | null =
     pending && !supersededByPaid && isPlanId(pending.plan)

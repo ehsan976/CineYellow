@@ -85,7 +85,7 @@ export function NetflixPlayer({ title, playback }: { title: Title; playback: Pla
         <p className="max-w-md text-white/70">
           {account.pendingPayment
             ? "Your payment is still being confirmed. Check its status on the Account page."
-            : "Pay for a month with JazzCash, EasyPaisa or Raast QR — Basic, Standard or Premium."}
+            : "Pay for a month with Safepay — Basic, Standard or Premium."}
         </p>
         <div className="flex gap-3">
           <Link href="/account" className="rounded-md bg-primary px-5 py-2.5 font-semibold text-primary-foreground hover:bg-primary/85">

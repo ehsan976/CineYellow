@@ -71,8 +71,8 @@ export const userSettings = pgTable("user_settings", {
 });
 
 /**
- * One row per payment attempt. `id` is our order reference (sent to ZurvaPay as `identifier`);
- * `providerTxnId` holds ZurvaPay's transaction id (TID). A paid row gives access from periodStart to
+ * One row per payment attempt. `id` is our order reference (sent to Safepay as metadata.order_id);
+ * `providerTxnId` holds Safepay's tracker. A paid row gives access from periodStart to
  * periodEnd. Rows are kept when the user is deleted (user_id becomes null) for the accounts.
  */
 export const payment = pgTable(
@@ -101,7 +101,7 @@ export const payment = pgTable(
   (table) => [
     index("payment_user_idx").on(table.userId, table.createdAt),
     index("payment_user_period_idx").on(table.userId, table.periodEnd),
-    // Webhooks look payments up by the gateway's reference (ZurvaPay TID).
+    // Webhooks look payments up by the gateway's reference (Safepay tracker).
     index("payment_provider_txn_idx").on(table.providerTxnId),
   ],
 );

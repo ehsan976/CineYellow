@@ -1,8 +1,8 @@
 // Payment rows and access periods. Server only. Gateways never decide the amount or the plan:
 // both are stored here when the payment starts, and every result is matched against that row.
 import type { PaymentProvider, PlanId } from "@/lib/types";
-import type { GatewayResult } from "@/lib/payments/zurvapay";
-import { inquireZurvapay } from "@/lib/payments/zurvapay";
+import type { GatewayResult } from "@/lib/payments/safepay";
+import { inquireSafepay } from "@/lib/payments/safepay";
 import { randomInt } from "node:crypto";
 import { and, desc, eq, gt } from "drizzle-orm";
 
@@ -78,7 +78,7 @@ export async function applyGatewayResult(paymentId: string, result: GatewayResul
         paidAt: now,
         periodStart: start,
         periodEnd: new Date(start.getTime() + PLAN_DAYS * DAY_MS),
-        providerTxnId: result.txnId ?? row.providerTxnId,
+        providerTxnId: result.txnId ?? null,
         method: result.method ?? row.method,
         responseCode: result.code,
         responseMessage: result.message,
@@ -88,24 +88,21 @@ export async function applyGatewayResult(paymentId: string, result: GatewayResul
   });
 }
 
-/** Remember the gateway's reference for a payment (ZurvaPay's transaction id). */
+/** Remember the gateway's reference for a payment (Safepay's tracker token). */
 export async function setPaymentReference(paymentId: string, providerTxnId: string) {
   await db.update(payment).set({ providerTxnId }).where(eq(payment.id, paymentId));
 }
 
-/**
- * Ask ZurvaPay about a payment row (by our id, which is ZurvaPay's `identifier`) and record the
- * answer. Returns the status afterwards. Old Safepay rows are left as they are.
- */
+/** Ask Safepay about a payment row and record the answer. Returns the status afterwards. */
 export async function syncPaymentWithGateway(row: typeof payment.$inferSelect) {
-  if (row.status !== "pending" || row.provider !== "zurvapay") return row.status;
-  const result = await inquireZurvapay(row.id, row.amount);
+  if (row.status !== "pending" || !row.providerTxnId) return row.status;
+  const result = await inquireSafepay(row.providerTxnId, row.amount);
   return applyGatewayResult(row.id, result);
 }
 
 /**
- * One of the user's payments, re-checked with ZurvaPay if it's still pending (the browser may have
- * closed before returning, or the IPN is late). Returns the status afterwards.
+ * One of the user's payments, re-checked with Safepay if it's still pending (the browser may have
+ * closed before returning, or the webhook is late). Returns the status afterwards.
  */
 export async function recheckPayment(userId: string, paymentId: string) {
   const [row] = await db

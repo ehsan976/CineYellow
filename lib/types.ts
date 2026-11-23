@@ -130,15 +130,14 @@ export interface Plan {
   screens: number;
 }
 
-/** "zurvapay" for new payments; "safepay" only on older rows from before the switch. */
-export type PaymentProvider = "zurvapay" | "safepay";
+export type PaymentProvider = "safepay";
 
-/** Plan time bought through ZurvaPay (from the latest paid row in the `payment` table). */
+/** Plan time bought through Safepay (from the latest paid row in the `payment` table). */
 export interface AccessInfo {
   plan: PlanId;
   /** ISO date the paid time ends. */
   until: string;
-  /** How it was paid, e.g. "JazzCash", "EasyPaisa" or "Raast QR"; may be empty. */
+  /** How it was paid, as Safepay reports it (e.g. "card"); may be empty. */
   method: string;
 }
 
@@ -155,7 +154,7 @@ export interface Account {
   plan: PlanId | null;
   memberSince: string;
   notifications: { newEpisodes: boolean; recommendations: boolean; emailUpdates: boolean };
-  /** True when ZurvaPay is set up: plans must be paid for. */
+  /** True when Safepay is set up: plans must be paid for. */
   billing: boolean;
   /** Paid time that hasn't run out yet (billing on). */
   access: AccessInfo | null;

@@ -1,5 +1,5 @@
 // Account data: email and member-since come from Better Auth's user row; the plan from paid
-// ZurvaPay payments (or, in demo mode, the user's `plan` field); notifications from
+// Safepay payments (or, in demo mode, the user's `plan` field); notifications from
 // the user_settings table — all loaded via /api/me.
 import type { Account, Plan, PlanId } from "@/lib/types";
 import { PLAN_PRICES_PKR, formatPkr } from "@/lib/user-data";

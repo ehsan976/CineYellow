@@ -47,7 +47,7 @@ export const auth = betterAuth({
     deleteUser: { enabled: true },
     additionalFields: {
       // Demo mode (no payment gateway keys): chosen on the sign-up form, changed from /account.
-      // With ZurvaPay on, the plan comes from paid rows in the `payment` table and users can't
+      // With Safepay on, the plan comes from paid rows in the `payment` table and users can't
       // set this themselves.
       plan: {
         type: ["basic", "standard", "premium"],

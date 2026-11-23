@@ -230,7 +230,7 @@ export function SignupForm({ googleEnabled = false, billingEnabled = false }: { 
     const name = form.name.trim().slice(0, 24);
     const email = form.email.trim();
     // Better Auth creates the user and its databaseHooks add the profiles. Demo mode stores the
-    // chosen plan on the user; with ZurvaPay on, the Account page asks for payment.
+    // chosen plan on the user; with Safepay on, the Account page asks for payment.
     const result = await signUp({ name, email, password: form.password, plan: billingEnabled ? undefined : form.plan });
     if (!result.ok) {
       setBusy(false);

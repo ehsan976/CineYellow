@@ -6,7 +6,7 @@ import { Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { plans } from "@/lib/stores/account-store";
-import { payForPlan } from "@/lib/stores/payment-store";
+import { payWithSafepay } from "@/lib/stores/payment-store";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-/** One month of a plan through ZurvaPay's hosted checkout (JazzCash, EasyPaisa or Raast QR). */
+/** One month of a plan through Safepay's hosted checkout. */
 export function PaymentDialog({ plan, onClose }: { plan: PlanId | null; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const info = plan ? plans[plan] : null;
@@ -30,8 +30,8 @@ export function PaymentDialog({ plan, onClose }: { plan: PlanId | null; onClose:
   const pay = async () => {
     if (!plan) return;
     setBusy(true);
-    // On success the browser is already leaving for ZurvaPay's checkout page.
-    const result = await payForPlan(plan);
+    // On success the browser is already leaving for Safepay's checkout page.
+    const result = await payWithSafepay(plan);
     if (!result.ok) {
       setBusy(false);
       toast.error(result.error);
@@ -55,7 +55,7 @@ export function PaymentDialog({ plan, onClose }: { plan: PlanId | null; onClose:
 
         <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm">
           <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-          You&apos;ll pay on ZurvaPay&apos;s secure checkout page with JazzCash, EasyPaisa or Raast QR. Your wallet details are never entered on CineYellow.
+          You&apos;ll pay on Safepay&apos;s secure checkout page. Your card or wallet details are never entered on CineYellow.
         </p>
 
         <DialogFooter>
@@ -65,7 +65,7 @@ export function PaymentDialog({ plan, onClose }: { plan: PlanId | null; onClose:
             </Button>
           </DialogClose>
           <Button onClick={pay} disabled={busy || !plan}>
-            {busy && <Loader2 className="animate-spin" />} Continue to ZurvaPay
+            {busy && <Loader2 className="animate-spin" />} Continue to Safepay
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -43,7 +43,7 @@ export function AccountPage() {
   const [deleting, setDeleting] = useState(false);
   const [payPlan, setPayPlan] = useState<PlanId | null>(null);
 
-  // Back from ZurvaPay (?payment=…), or sent here by sign-up with a plan to pay for (?plan=…).
+  // Back from Safepay (?payment=…), or sent here by sign-up with a plan to pay for (?plan=…).
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const outcome = params.get("payment");
@@ -108,7 +108,7 @@ export function AccountPage() {
             <AccessRow />
           ) : (
             <p className="pb-3 text-sm text-muted-foreground">
-              Demo mode: plans switch for free. Add your ZurvaPay keys to <code>.env</code> to take real payments.
+              Demo mode: plans switch for free. Add your Safepay keys to <code>.env</code> to take real payments.
             </p>
           )}
           <div className="grid gap-3 py-3 sm:grid-cols-3">
@@ -228,7 +228,7 @@ function AccessRow() {
     if (!result.ok) return toast.error(result.error);
     if (result.status === "paid") toast.success("Payment confirmed — enjoy watching!");
     else if (result.status === "failed") toast.error("That payment didn't go through. No money was taken.");
-    else toast("Still waiting for ZurvaPay to confirm. Try again in a minute.");
+    else toast("Still waiting for Safepay to confirm. Try again in a minute.");
   };
 
   return (
@@ -237,8 +237,8 @@ function AccessRow() {
         label={access ? `${planInfo?.name} plan · paid until ${formatLongDate(access.until)}` : "No active plan"}
         hint={
           access
-            ? `Paid${access.method ? ` by ${access.method}` : ""} through ZurvaPay. Plans don't renew automatically — pay again before it ends.`
-            : "Choose a plan below and pay securely with ZurvaPay."
+            ? `Paid${access.method ? ` by ${access.method}` : ""} through Safepay. Plans don't renew automatically — pay again before it ends.`
+            : "Choose a plan below and pay securely with Safepay."
         }
         className="pb-3"
       >
@@ -247,7 +247,7 @@ function AccessRow() {
       {pendingPayment && (
         <SettingRow
           label="Payment waiting for confirmation"
-          hint={`${plans[pendingPayment.plan].name} plan through ZurvaPay`}
+          hint={`${plans[pendingPayment.plan].name} plan through Safepay`}
           className="pb-3"
         >
           <Button variant="outline" disabled={checking} onClick={check}>

@@ -39,7 +39,7 @@ export function signIn({ email, password, remember = true }: { email: string; pa
 
 /**
  * Demo mode: `plan` is stored on Better Auth's user row (an additional field, see lib/auth/server.ts).
- * With ZurvaPay on, leave it out — the plan comes from a payment instead.
+ * With Safepay on, leave it out — the plan comes from a payment instead.
  */
 export function signUp({ name, email, password, plan }: { name: string; email: string; password: string; plan?: PlanId }) {
   const body = { name, email, password, ...(plan ? { plan } : {}) } as Parameters<typeof authClient.signUp.email>[0];
