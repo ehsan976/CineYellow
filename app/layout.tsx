@@ -20,10 +20,6 @@ export const metadata = {
     template: "%s — CineYellow",
   },
   description: "Stream movies, series and anime on CineYellow.",
-  verification: {
-    // CryptoEze domain verification: <meta name="crypto-eze-verification" content="…">
-    other: { "crypto-eze-verification": "5f78a53c5b311f61" },
-  },
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
