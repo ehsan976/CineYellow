@@ -4,13 +4,12 @@ import { useHotkey } from "@videojs/react";
 import { usePlayer } from "@videojs/react/video";
 
 import { cn } from "@/lib/utils";
-import { usePlayerInfo } from "@/components/player/player-context";
+import { useSkipMarkers } from "@/components/player/player-context";
 
 /** Netflix-style "Skip Intro" button, shown while playback is inside the intro window. */
 export function SkipIntroButton() {
   const store = usePlayer();
-  const { playback } = usePlayerInfo();
-  const { start, end } = playback.intro;
+  const { start, end } = useSkipMarkers().intro;
   const currentTime = usePlayer((s) => s.currentTime);
   const visible = currentTime >= start && currentTime < end;
 

@@ -64,6 +64,13 @@
       "when": 1795507736906,
       "tag": "0008_title_videos",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795537213077,
+      "tag": "0009_trakt_subtitles",
+      "breakpoints": true
     }
   ]
 }

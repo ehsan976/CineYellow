@@ -17,6 +17,8 @@ export interface AnilistAiring {
 /** An entry in a relations tree: enough to walk to the airing season. */
 export interface AnilistNode {
   id: number;
+  idMal?: number | null;
+  episodes?: number | null;
   type?: string;
   format?: AnilistFormat | null;
   status?: AnilistStatus | null;
@@ -26,10 +28,8 @@ export interface AnilistNode {
 }
 
 export interface AnilistMedia extends AnilistNode {
-  idMal?: number | null;
   title?: { romaji?: string | null; english?: string | null; native?: string | null };
   synonyms?: string[] | null;
-  episodes?: number | null;
   averageScore?: number | null;
   source?: string | null;
   season?: string | null;
@@ -121,10 +121,12 @@ const capitalize = (s: string) => s.charAt(0) + s.slice(1).toLowerCase();
 const sourceLabel = (s?: string | null) => (s ? s.split("_").map(capitalize).join(" ") : "");
 
 /**
- * `first` is the matched entry (season 1 for shows); `latest` is the newest season found by
- * following sequels (the same entry for movies). Status and next episode come from `latest`.
+ * `first` is the matched entry (season 1 for shows); `chain` is every TV season found by
+ * following sequels, `first` included (just `[first]` for movies). Status and next episode come
+ * from the season airing now, else the newest one.
  */
-export function toAnimeInfo(first: AnilistMedia, latest: AnilistNode): AnimeInfo {
+export function toAnimeInfo(first: AnilistMedia, chain: AnilistNode[]): AnimeInfo {
+  const latest = chain.find((s) => s.status === "RELEASING") ?? chain[chain.length - 1] ?? first;
   const status = latest.status ?? first.status;
   // A later season that hasn't started yet: the show itself isn't "upcoming".
   const sequelAnnounced = latest.id !== first.id && status === "NOT_YET_RELEASED";
@@ -142,5 +144,11 @@ export function toAnimeInfo(first: AnilistMedia, latest: AnilistNode): AnimeInfo
       : null,
     anilistUrl: first.siteUrl ?? `https://anilist.co/anime/${first.id}`,
     malUrl: first.idMal ? `https://myanimelist.net/anime/${first.idMal}` : null,
+    seasons: chain.map((s) => ({
+      anilistId: s.id,
+      malId: s.idMal ?? null,
+      episodes: s.episodes ?? null,
+      released: s.status !== "NOT_YET_RELEASED",
+    })),
   };
 }

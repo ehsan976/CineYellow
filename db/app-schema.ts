@@ -1,6 +1,6 @@
 // CineYellow's own tables. Everything hangs off Better Auth's `user` row and is removed with it
 // (onDelete: cascade), so "Delete account" also clears profiles, lists and history.
-import type { AvatarColor, LanguageStatus, PaymentProvider, PlanId, PlayerPrefs } from "@/lib/types";
+import type { AvatarColor, LanguageStatus, PaymentProvider, PlanId, PlayerPrefs, SubtitleTrack } from "@/lib/types";
 import { relations, sql } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
@@ -59,6 +59,23 @@ export const watchHistory = pgTable(
     index("watch_history_profile_updated_idx").on(table.profileId, table.updatedAt),
   ],
 );
+
+/**
+ * A profile's link to its Trakt account (trakt.tv): finished titles are added to its Trakt
+ * history, and its Trakt watchlist can be imported into My List. Tokens are AES-GCM encrypted
+ * (lib/trakt/crypto.ts), never sent to the browser.
+ */
+export const traktConnection = pgTable("trakt_connection", {
+  profileId: text("profile_id")
+    .primaryKey()
+    .references(() => profile.id, { onDelete: "cascade" }),
+  username: text("username").notNull().default(""),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
 /** Account-wide settings (one row per user). */
 export const userSettings = pgTable("user_settings", {
@@ -155,6 +172,8 @@ export const titleVideo = pgTable(
     introStart: integer("intro_start"),
     introEnd: integer("intro_end"),
     creditsAt: integer("credits_at"),
+    /** WebVTT files for the site player (HLS only): [{ lang, label, url }]. */
+    subtitles: jsonb("subtitles").$type<SubtitleTrack[]>().notNull().default([]),
     createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at").defaultNow().notNull(),

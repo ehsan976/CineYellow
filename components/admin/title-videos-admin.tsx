@@ -4,11 +4,12 @@ import type { TitleVideoRow } from "@/lib/server/title-videos";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { deleteTitleVideoAction, saveTitleVideoAction, type VideoActionResult } from "@/app/actions/title-videos";
-import { checkVideoUrl, EMBED_HOSTS } from "@/lib/videos";
+import { checkVideoUrl, EMBED_HOSTS, MAX_SUBTITLES } from "@/lib/videos";
+import { languageName, normalizeLanguageCode } from "@/lib/languages";
 import { watchHref } from "@/lib/player/playback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,9 +26,11 @@ interface FormState {
   introStart: string;
   introEnd: string;
   creditsAt: string;
+  /** Subtitle files (HLS only): language code or name + .vtt link. */
+  subtitles: { lang: string; url: string }[];
 }
 
-const EMPTY: FormState = { title: "", season: "", episode: "", url: "", introStart: "", introEnd: "", creditsAt: "" };
+const EMPTY: FormState = { title: "", season: "", episode: "", url: "", introStart: "", introEnd: "", creditsAt: "", subtitles: [] };
 
 const str = (n: number | null) => (n === null || n === undefined ? "" : String(n));
 
@@ -39,6 +42,7 @@ const fromRow = (row: TitleVideoRow): FormState => ({
   introStart: str(row.introStart),
   introEnd: str(row.introEnd),
   creditsAt: str(row.creditsAt),
+  subtitles: (row.subtitles ?? []).map((t) => ({ lang: t.lang, url: t.url })),
 });
 
 export function TitleVideosAdmin({
@@ -163,6 +167,11 @@ export function TitleVideosAdmin({
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant="outline">{row.kind === "hls" ? "HLS · site player" : "Embed"}</Badge>
+                    {row.subtitles?.length > 0 && (
+                      <Badge variant="outline" className="ml-1" title={row.subtitles.map((t) => t.label).join(", ")}>
+                        CC {row.subtitles.length}
+                      </Badge>
+                    )}
                   </td>
                   <td className="max-w-80 px-4 py-3">
                     <span className="block truncate text-xs text-muted-foreground" title={row.url}>
@@ -208,7 +217,9 @@ export function TitleVideosAdmin({
               initial={form}
               saving={busy === "save"}
               onSave={async (values) => {
-                const ok = await run("save", () => saveTitleVideoAction(values));
+                // Subtitle files only apply to HLS streams; don't send leftovers for an embed.
+                const hls = checkVideoUrl(values.url).kind === "hls";
+                const ok = await run("save", () => saveTitleVideoAction({ ...values, subtitles: hls ? values.subtitles : [] }));
                 if (ok) setForm(null);
               }}
             />
@@ -286,11 +297,13 @@ function VideoForm({ initial, saving, onSave }: { initial: FormState; saving: bo
             <Input id="credits-at" inputMode="numeric" value={f.creditsAt} onChange={set("creditsAt")} placeholder="optional" />
           </div>
           <p className="col-span-3 -mt-1 text-xs text-muted-foreground">
-            Intro times show the &ldquo;Skip Intro&rdquo; button; credits start shows &ldquo;Next episode&rdquo; early. The stream&apos;s
-            host must allow requests from this site (CORS).
+            Intro times show the &ldquo;Skip Intro&rdquo; button; credits start shows &ldquo;Next episode&rdquo; early. For anime left
+            empty, times are taken from AniSkip when they fit the video. The stream&apos;s host must allow requests from this site (CORS).
           </p>
         </div>
       )}
+
+      {isHls && <SubtitleRows rows={f.subtitles} onChange={(subtitles) => setF((prev) => ({ ...prev, subtitles }))} />}
 
       <DialogFooter className="gap-2">
         <DialogClose asChild>
@@ -303,5 +316,50 @@ function VideoForm({ initial, saving, onSave }: { initial: FormState; saving: bo
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+/** Subtitle files for an HLS video: one WebVTT link per language. */
+function SubtitleRows({ rows, onChange }: { rows: FormState["subtitles"]; onChange: (rows: FormState["subtitles"]) => void }) {
+  const update = (i: number, patch: Partial<FormState["subtitles"][number]>) =>
+    onChange(rows.map((row, j) => (j === i ? { ...row, ...patch } : row)));
+
+  return (
+    <fieldset className="space-y-2">
+      <legend className="mb-2 text-sm font-medium">Subtitle files</legend>
+      {rows.map((row, i) => {
+        const code = normalizeLanguageCode(row.lang);
+        return (
+          <div key={i} className="flex items-start gap-2">
+            <div className="w-28 shrink-0">
+              <Input
+                value={row.lang}
+                onChange={(e) => update(i, { lang: e.target.value })}
+                placeholder="en, hi, ur"
+                aria-label={`Subtitle ${i + 1} language`}
+              />
+              <span className="mt-1 block truncate text-[11px] text-muted-foreground">{code ? languageName(code) : row.lang ? "Unknown code" : ""}</span>
+            </div>
+            <Input
+              value={row.url}
+              onChange={(e) => update(i, { url: e.target.value })}
+              placeholder="https://…/subtitles.en.vtt"
+              aria-label={`Subtitle ${i + 1} link`}
+            />
+            <Button type="button" variant="ghost" size="icon" aria-label={`Remove subtitle ${i + 1}`} onClick={() => onChange(rows.filter((_, j) => j !== i))}>
+              <X />
+            </Button>
+          </div>
+        );
+      })}
+      {rows.length < MAX_SUBTITLES && (
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange([...rows, { lang: "", url: "" }])}>
+          <Plus /> Add subtitle file
+        </Button>
+      )}
+      <p className="text-xs text-muted-foreground">
+        WebVTT (.vtt) files, shown in the player&apos;s Audio &amp; Subtitles menu. Their host must allow CORS, like the stream.
+      </p>
+    </fieldset>
   );
 }

@@ -11,6 +11,7 @@ import { TitleActions } from "@/components/title/title-actions";
 import { Details, Episodes } from "@/components/title/title-sections";
 import { LanguagesSkeleton, TitleLanguages } from "@/components/title/title-languages";
 import { AnimeInfo, AnimeInfoSkeleton } from "@/components/title/anime-info";
+import { WhereToWatch } from "@/components/title/where-to-watch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -110,6 +111,7 @@ export function TitleView({ details, initialEpisodes }: { details: TitleDetails;
                   </ul>
                 </div>
               )}
+              <WhereToWatch providers={details.watchProviders} />
               {/* Audio / subtitle languages: read from Postgres at request time (Movie of the Night on first visit). */}
               <Suspense fallback={<LanguagesSkeleton />}>
                 <TitleLanguages titleId={title.id} name={title.title} imdbId={imdbId} />
