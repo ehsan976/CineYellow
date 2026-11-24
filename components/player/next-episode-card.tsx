@@ -10,7 +10,7 @@ import { useHotkey } from "@videojs/react";
 import { usePlayer } from "@videojs/react/video";
 
 import { Button } from "@/components/ui/button";
-import { useAutoplayNext, usePlayerInfo } from "@/components/player/player-context";
+import { useAutoplayNext, usePlayerInfo, useSkipMarkers } from "@/components/player/player-context";
 
 const COUNTDOWN = 10;
 
@@ -24,7 +24,8 @@ export function NextEpisodeCard() {
   const currentTime = usePlayer((s) => s.currentTime);
   const ended = usePlayer((s) => s.ended);
   const [dismissed, setDismissed] = useState(false);
-  const inCredits = currentTime >= playback.creditsAt || ended;
+  const { creditsAt } = useSkipMarkers();
+  const inCredits = currentTime >= creditsAt || ended;
 
   // Seeking back before the credits brings the card back next time.
   if (dismissed && !inCredits) setDismissed(false);

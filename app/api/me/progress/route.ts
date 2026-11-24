@@ -1,10 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { watchHistory } from "@/db/schema";
 import { UnauthorizedError, requireProfile } from "@/lib/server/dal";
 import { isHistoryEntry } from "@/lib/user-data";
+import { addToTraktHistory, type FinishedItem } from "@/lib/server/trakt";
+import { trakt } from "@/lib/trakt/config";
+
+/** Watched this share of a video → it counts as finished (sent to Trakt once). */
+const FINISHED = 0.9;
 
 const MAX_ITEMS = 200;
 
@@ -33,6 +38,19 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof UnauthorizedError) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     throw error;
+  }
+
+  // Trakt: entries that just reached the end (≥ 90%) are added to the profile's Trakt history.
+  // Only near the end of a video do we look at the saved position, so normal saves cost nothing extra.
+  const nearEnd = trakt.enabled ? upserts.filter((e) => e.duration > 0 && e.time / e.duration >= FINISHED) : [];
+  let finished: FinishedItem[] = [];
+  if (nearEnd.length) {
+    const before = await db
+      .select({ key: watchHistory.key, positionSec: watchHistory.positionSec, durationSec: watchHistory.durationSec })
+      .from(watchHistory)
+      .where(and(eq(watchHistory.profileId, profileId), inArray(watchHistory.key, nearEnd.map((e) => e.key))));
+    const wasFinished = new Set(before.filter((r) => r.durationSec > 0 && r.positionSec / r.durationSec >= FINISHED).map((r) => r.key));
+    finished = nearEnd.filter((e) => !wasFinished.has(e.key)).map(({ titleId, season, episode }) => ({ titleId, season, episode }));
   }
 
   // Different keys, so the delete and the upsert can run at the same time.
@@ -66,5 +84,7 @@ export async function POST(request: Request) {
         },
       }),
   ]);
+  // After the response: Trakt is slow-ish and the player doesn't need to wait for it.
+  if (finished.length) after(() => addToTraktHistory(profileId, finished));
   return new NextResponse(null, { status: 204 });
 }

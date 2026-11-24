@@ -1,6 +1,6 @@
 // TMDB responses → the site's Title / Episode shapes (lib/types.ts). Pure functions.
-import type { Episode, Title, TitleType, Trailer } from "@/lib/types";
-import type { TmdbDetails, TmdbEpisode, TmdbListItem, TmdbVideo } from "@/lib/tmdb/types";
+import type { Episode, Title, TitleType, Trailer, WatchProvider, WatchProviders } from "@/lib/types";
+import type { TmdbDetails, TmdbEpisode, TmdbListItem, TmdbProvider, TmdbVideo } from "@/lib/tmdb/types";
 import { TMDB_IMAGES } from "@/lib/tmdb/config";
 import { PLACEHOLDER_LANDSCAPE, PLACEHOLDER_POSTER, makeTitleId, type TmdbMedia } from "@/lib/titles";
 
@@ -153,6 +153,37 @@ export function toEpisodes(raw: TmdbEpisode[] | undefined, title: Title, season:
         summary: ep.overview || title.description,
       };
     });
+}
+
+// ---------- Where to watch ----------
+
+function toProviders(list: TmdbProvider[] | undefined, skip: Set<number> = new Set()): WatchProvider[] {
+  const out: WatchProvider[] = [];
+  for (const p of [...(list ?? [])].sort((a, b) => (a.display_priority ?? 99) - (b.display_priority ?? 99))) {
+    if (!p.provider_name || !p.logo_path || skip.has(p.provider_id) || out.some((o) => o.id === p.provider_id)) continue;
+    out.push({ id: p.provider_id, name: p.provider_name, logo: img("w92", p.logo_path) });
+  }
+  return out;
+}
+
+/** The title's streaming / rent / buy options in `region`; null when TMDB lists none there. */
+export function toWatchProviders(details: TmdbDetails, region: string): WatchProviders | null {
+  const data = details["watch/providers"]?.results?.[region];
+  if (!data?.link) return null;
+  const stream = toProviders(data.flatrate);
+  const free = toProviders([...(data.free ?? []), ...(data.ads ?? [])], new Set(stream.map((p) => p.id)));
+  const rent = toProviders(data.rent);
+  const buy = toProviders(data.buy);
+  if (!stream.length && !free.length && !rent.length && !buy.length) return null;
+  return { link: data.link, region, stream, free, rent, buy };
+}
+
+/** Episodes per season, season 1 first (specials / season 0 left out). */
+export function toSeasonEpisodeCounts(details: TmdbDetails): number[] {
+  const seasons = (details.seasons ?? []).filter((s) => s.season_number >= 1).sort((a, b) => a.season_number - b.season_number);
+  const counts: number[] = [];
+  for (const s of seasons) counts[s.season_number - 1] = s.episode_count ?? 0;
+  return Array.from(counts, (c) => c ?? 0);
 }
 
 /** Best YouTube trailer: official trailers first, then teasers; English/Hindi before other languages. */

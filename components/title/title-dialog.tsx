@@ -1,6 +1,6 @@
 "use client";
 
-import type { Title, Trailer } from "@/lib/types";
+import type { Title, Trailer, WatchProviders } from "@/lib/types";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,6 +12,7 @@ import { titleSizeClass } from "@/lib/ui";
 import { useApp } from "@/components/providers/app-context";
 import { ListButton } from "@/components/common/list-button";
 import { TrailerButton } from "@/components/title/trailer-button";
+import { WhereToWatch } from "@/components/title/where-to-watch";
 import { Details, Episodes } from "@/components/title/title-sections";
 import { useWatchTarget } from "@/hooks/use-watch-target";
 import { Badge } from "@/components/ui/badge";
@@ -53,6 +54,7 @@ export function TitleDialog({
             title={title}
             similar={details?.similar}
             trailer={details?.trailer}
+            providers={details?.watchProviders ?? null}
             loading={details === undefined}
           />
         ) : details === null ? (
@@ -95,11 +97,13 @@ function TitleDetails({
   title,
   similar,
   trailer,
+  providers,
   loading,
 }: {
   title: Title;
   similar?: Title[];
   trailer?: Trailer | null;
+  providers: WatchProviders | null;
   loading: boolean;
 }) {
   const rootRef = useRef(null);
@@ -208,6 +212,9 @@ function TitleDetails({
         </TabsContent>
         <TabsContent value="details">
           <Details title={title} />
+          <div className="mt-4">
+            <WhereToWatch providers={providers} />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

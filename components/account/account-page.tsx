@@ -11,6 +11,7 @@ import { plans, updateAccount } from "@/lib/stores/account-store";
 import { changePassword, deleteAccount, signOut } from "@/lib/stores/auth-store";
 import { checkPendingPayment } from "@/lib/stores/payment-store";
 import { PaymentDialog } from "@/components/account/payment-dialog";
+import { TraktCard } from "@/components/account/trakt-card";
 import { useApp } from "@/components/providers/app-context";
 import { useAccount } from "@/hooks/use-account";
 import { PageHeading, SettingRow, SettingsCard, SettingsSkeleton } from "@/components/account/settings-ui";
@@ -51,8 +52,14 @@ export function AccountPage() {
     if (outcome === "pending") toast("Payment not confirmed yet", { description: "Use “Check status” on this page in a minute." });
     if (outcome === "failed") toast.error("The payment didn't go through.", { description: "No money was taken. Please try again." });
     if (outcome === "cancelled") toast("Payment cancelled.");
+    // Back from Trakt (/api/trakt/callback).
+    const traktOutcome = params.get("trakt");
+    if (traktOutcome === "connected") toast.success("Trakt connected");
+    if (traktOutcome === "cancelled") toast("Trakt link cancelled.");
+    if (traktOutcome === "error") toast.error("Couldn't connect Trakt. Please try again.");
+    if (traktOutcome === "unavailable") toast.error("Trakt isn't set up on this site.");
     const plan = params.get("plan");
-    if (outcome || plan) window.history.replaceState(null, "", "/account");
+    if (outcome || plan || traktOutcome) window.history.replaceState(null, "", "/account");
     if (!plan || !(plan in plans)) return;
     // Open the payment dialog once the page has rendered.
     const id = setTimeout(() => setPayPlan(plan as PlanId), 0);
@@ -166,6 +173,8 @@ export function AccountPage() {
         </SettingsCard>
 
         <DevicesCard currentToken={session?.session.token} />
+
+        <TraktCard />
 
         <SettingsCard title="Danger zone" className="ring-destructive/30">
           <SettingRow label="Sign out of all devices" hint="You'll need to sign in again everywhere.">

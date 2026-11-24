@@ -6,6 +6,9 @@
 //   so the site can't be pointed at unlicensed "free movie" embed sites. Upload the videos you
 //   have the rights to to one of them (or serve your own HLS) and paste the link here.
 
+import type { SubtitleTrack } from "@/lib/types";
+import { languageName, normalizeLanguageCode } from "@/lib/languages";
+
 export type VideoKind = "hls" | "embed";
 
 /** Hosts whose embed players may be shown. */
@@ -95,6 +98,39 @@ export function checkVideoUrl(raw: string, kind?: VideoKind): CheckedVideoUrl {
     ok: false,
     error: `Use an .m3u8 stream, or a video from ${EMBED_HOSTS.join(", ")}.`,
   };
+}
+
+export const MAX_SUBTITLES = 20;
+
+export type CheckedSubtitles = { ok: boolean; tracks?: SubtitleTrack[]; error?: string };
+
+/**
+ * Validates the subtitle rows from the admin form: an https link to a WebVTT file plus a language
+ * (code like "en" / "hin", or a name the picker offers). One file per language.
+ */
+export function checkSubtitles(raw: unknown): CheckedSubtitles {
+  if (raw === undefined || raw === null) return { ok: true, tracks: [] };
+  if (!Array.isArray(raw)) return { ok: false, error: "Invalid subtitles." };
+  const rows = raw.filter((r) => r && (String(r.url ?? "").trim() || String(r.lang ?? "").trim()));
+  if (rows.length > MAX_SUBTITLES) return { ok: false, error: `At most ${MAX_SUBTITLES} subtitle files.` };
+
+  const tracks: SubtitleTrack[] = [];
+  for (const row of rows) {
+    const lang = normalizeLanguageCode(String(row.lang ?? ""));
+    if (!lang) return { ok: false, error: `"${String(row.lang ?? "").slice(0, 20)}" isn't a language code (try en, hi, ur).` };
+    if (tracks.some((t) => t.lang === lang)) return { ok: false, error: `Two subtitle files for ${languageName(lang)}.` };
+    let url: URL;
+    try {
+      url = new URL(String(row.url ?? "").trim());
+    } catch {
+      return { ok: false, error: `The ${languageName(lang)} subtitle link isn't valid.` };
+    }
+    if (url.protocol !== "https:" || url.href.length > 1000) return { ok: false, error: `Use an https:// link for ${languageName(lang)} subtitles.` };
+    if (!/\.vtt$/i.test(url.pathname)) return { ok: false, error: `${languageName(lang)} subtitles must be a .vtt (WebVTT) file.` };
+    const label = String(row.label ?? "").trim().slice(0, 40) || languageName(lang);
+    tracks.push({ lang, label, url: url.toString() });
+  }
+  return { ok: true, tracks };
 }
 
 /** For links stored before a rule changed: is this still an allowed embed URL? */

@@ -1,6 +1,6 @@
 // Video links per title / episode (table title_video), managed from /admin/videos.
 // The watch page asks getVideoSource(); admins' saves call updateTag(titleVideosTag(titleId)).
-import type { VideoSource } from "@/lib/types";
+import type { SubtitleTrack, VideoSource } from "@/lib/types";
 import { cacheTag } from "next/cache";
 import { desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
@@ -10,6 +10,38 @@ import { setCacheLife } from "@/lib/tmdb/cache";
 import { isAllowedEmbedUrl, videoKey, type VideoKind } from "@/lib/videos";
 
 export const titleVideosTag = (titleId: string) => `title-video:${titleId}`;
+/** Any video added, changed or removed (the bell's "Now available" list). */
+export const ALL_TITLE_VIDEOS_TAG = "title-videos";
+
+export interface RecentVideo {
+  titleId: string;
+  season: number | null;
+  episode: number | null;
+  updatedAt: string;
+}
+
+/**
+ * The titles whose videos were added or updated most recently, one entry per title (its newest
+ * video). null when the database can't be reached (callers then just leave these out).
+ */
+export async function getRecentVideos(limit = 6): Promise<RecentVideo[] | null> {
+  "use cache";
+  cacheTag(ALL_TITLE_VIDEOS_TAG);
+  let rows: Row[];
+  try {
+    rows = await db.select().from(titleVideo).orderBy(desc(titleVideo.updatedAt)).limit(limit * 5);
+  } catch (error) {
+    console.warn("[title-videos] recent videos:", error instanceof Error ? error.message : error);
+    setCacheLife("minutes");
+    return null;
+  }
+  setCacheLife("hours");
+  const seen = new Set<string>();
+  return rows
+    .filter((r) => (r.kind === "hls" || isAllowedEmbedUrl(r.url)) && !seen.has(r.titleId) && seen.add(r.titleId))
+    .slice(0, limit)
+    .map((r) => ({ titleId: r.titleId, season: r.season, episode: r.episode, updatedAt: r.updatedAt.toISOString() }));
+}
 
 type Row = typeof titleVideo.$inferSelect;
 
@@ -19,6 +51,7 @@ const toSource = (row: Row): VideoSource => ({
   introStart: row.introStart,
   introEnd: row.introEnd,
   creditsAt: row.creditsAt,
+  subtitles: row.kind === "hls" ? row.subtitles ?? [] : [],
 });
 
 /**
@@ -48,6 +81,7 @@ export interface TitleVideoRow {
   introStart: number | null;
   introEnd: number | null;
   creditsAt: number | null;
+  subtitles: SubtitleTrack[];
   updatedAt: string;
 }
 
@@ -62,6 +96,7 @@ const toAdminRow = (row: Row): TitleVideoRow => ({
   introStart: row.introStart,
   introEnd: row.introEnd,
   creditsAt: row.creditsAt,
+  subtitles: row.subtitles ?? [],
   updatedAt: row.updatedAt.toISOString(),
 });
 
@@ -93,6 +128,7 @@ export async function saveTitleVideo(input: {
   introStart: number | null;
   introEnd: number | null;
   creditsAt: number | null;
+  subtitles: SubtitleTrack[];
   adminId: string;
 }) {
   const key = videoKey(input.titleId, input.season, input.episode);
@@ -105,6 +141,7 @@ export async function saveTitleVideo(input: {
     introStart: input.introStart,
     introEnd: input.introEnd,
     creditsAt: input.creditsAt,
+    subtitles: input.subtitles,
     updatedAt: new Date(),
   };
   await db

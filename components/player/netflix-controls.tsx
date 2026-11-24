@@ -20,15 +20,12 @@ import { cn } from "@/lib/player/resolve-class-name";
 import { AudioSubtitlesMenu } from "@/components/player/audio-subtitles-menu";
 import { EpisodesMenu } from "@/components/player/episodes-menu";
 import { NetflixSettingsMenu } from "@/components/player/netflix-settings-menu";
-import { usePlayerInfo } from "@/components/player/player-context";
+import { usePlayerInfo, useSkipMarkers } from "@/components/player/player-context";
 
 /** Adds the intro range as an app text track so the time slider can mark it. */
 function IntroTrack() {
-  const { playback } = usePlayerInfo();
-  const cues = useMemo(
-    () => [{ startTime: playback.intro.start, endTime: playback.intro.end, text: "Intro" }],
-    [playback.intro.start, playback.intro.end]
-  );
+  const { intro } = useSkipMarkers();
+  const cues = useMemo(() => [{ startTime: intro.start, endTime: intro.end, text: "Intro" }], [intro.start, intro.end]);
   useCreateTextTrack({ kind: "metadata", label: "intro", cues });
   return null;
 }

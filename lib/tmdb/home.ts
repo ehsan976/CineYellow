@@ -6,7 +6,8 @@ import { cacheTag } from "next/cache";
 import { setCacheLife } from "@/lib/tmdb/cache";
 import { tmdbGet } from "@/lib/tmdb/client";
 import { tmdb } from "@/lib/tmdb/config";
-import { getGenreMaps, getTitleDetails, listToTitles } from "@/lib/tmdb/catalog";
+import { getGenreMaps, getTitleDetails, getTitlesByIds, listToTitles } from "@/lib/tmdb/catalog";
+import { ALL_TITLE_VIDEOS_TAG, getRecentVideos } from "@/lib/server/title-videos";
 import { dedupeTitles } from "@/lib/tmdb/map";
 import type { TmdbMedia } from "@/lib/titles";
 
@@ -103,31 +104,53 @@ export async function getHomePage(): Promise<HomePage> {
   };
 }
 
-/** The navbar bell: what's new this week. */
+/** "24 Nov" in the site's own timezone. */
+const shortDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "Asia/Karachi" });
+
+/**
+ * The navbar bell. Only titles that really have a video on the site (added in /admin/videos)
+ * say "streaming on CineYellow"; TMDB news is worded as news about the title, not the site.
+ */
 export async function getNotifications(): Promise<AppNotification[]> {
   "use cache";
-  const [airing, playing, trending, genres] = await Promise.all([
+  cacheTag(ALL_TITLE_VIDEOS_TAG);
+  const [recent, airing, playing, trending, genres] = await Promise.all([
+    getRecentVideos(4),
     tmdbGet<TmdbList>("/tv/on_the_air"),
     tmdbGet<TmdbList>("/movie/now_playing", { region: tmdb.region }),
     tmdbGet<TmdbList>("/trending/all/day"),
     getGenreMaps(),
   ]);
-  setCacheLife(airing.ok && playing.ok && trending.ok ? "hours" : "minutes");
+  const ok = recent !== null && airing.ok && playing.ok && trending.ok;
 
-  const shows = airing.ok ? listToTitles(airing.data, genres.tv, "tv").slice(0, 3) : [];
-  const movies = playing.ok ? listToTitles(playing.data, genres.movie, "movie").slice(0, 2) : [];
+  type Item = Omit<AppNotification, "id" | "unread"> & { onSite?: boolean };
+  const added = recent?.length ? await getTitlesByIds(recent.map((v) => v.titleId)) : {};
+  const onSite: Item[] = (recent ?? []).flatMap((v) => {
+    const title = added[v.titleId];
+    if (!title) return [];
+    const ep = v.season ? `S${v.season}:E${v.episode}` : "";
+    return [
+      ep
+        ? { title, label: "New Episode", detail: `${ep} is now streaming on CineYellow`, time: shortDate(v.updatedAt), onSite: true }
+        : { title, label: "Now Available", detail: "Now streaming on CineYellow", time: shortDate(v.updatedAt), onSite: true },
+    ];
+  });
+
+  const shows = airing.ok ? listToTitles(airing.data, genres.tv, "tv").slice(0, 2) : [];
+  const movies = playing.ok ? listToTitles(playing.data, genres.movie, "movie").slice(0, 1) : [];
   const top = trending.ok ? listToTitles(trending.data, genres.all).slice(0, 1) : [];
-  const times = ["2h ago", "5h ago", "Yesterday", "2 days ago", "3 days ago", "4 days ago"];
-
-  const items: Omit<AppNotification, "id" | "time" | "unread">[] = [
-    ...shows.map((title) => ({ title, label: "New Episode", detail: "A new episode is out now" })),
-    ...movies.map((title) => ({ title, label: "Now Available", detail: "Now streaming on CineYellow" })),
-    ...top.map((title) => ({ title, label: "Trending", detail: "#1 on CineYellow today" })),
+  const news: Item[] = [
+    ...shows.map((title) => ({ title, label: "Airing Now", detail: "New episodes this week", time: "This week" })),
+    ...movies.map((title) => ({ title, label: "In Cinemas", detail: "Now playing in cinemas", time: "This week" })),
+    ...top.map((title) => ({ title, label: "Trending", detail: "Popular around the world today", time: "Today" })),
   ];
+
+  setCacheLife(ok ? "hours" : "minutes");
   const seen = new Set<string>();
-  return items
+  return [...onSite, ...news]
     .filter((n) => !seen.has(n.title.id) && seen.add(n.title.id))
-    .map((n, i) => ({ ...n, id: `n${i + 1}`, time: times[i] ?? "This week", unread: i < 3 }));
+    .map(({ onSite: isNew, ...n }, i) => ({ ...n, id: `n${i + 1}-${n.title.id}`, unread: Boolean(isNew) || i < 2 }));
 }
 
 /** "Top picks" on the empty search page and the landing page. */
