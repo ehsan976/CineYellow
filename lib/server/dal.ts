@@ -50,6 +50,28 @@ export async function requireUser(): Promise<CurrentUser> {
   return user;
 }
 
+export class ForbiddenError extends Error {
+  constructor() {
+    super("Forbidden");
+  }
+}
+
+/**
+ * The signed-in user, if they are an admin. The role and ban flag are read from the user row
+ * (not the 5-minute session cookie cache), so a demoted or banned admin is stopped at once.
+ */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireUser();
+  const [row] = await db
+    .select({ role: userTable.role, banned: userTable.banned })
+    .from(userTable)
+    .where(eq(userTable.id, user.id))
+    .limit(1);
+  const roles = (row?.role ?? "").split(",").map((r) => r.trim());
+  if (!row || row.banned || !roles.includes("admin")) throw new ForbiddenError();
+  return user;
+}
+
 /** The user plus one of *their* profiles. Throws if the id belongs to someone else. */
 export async function requireProfile(profileId: unknown) {
   const user = await requireUser();

@@ -1,12 +1,11 @@
 "use client";
 
+import type { AppNotification } from "@/lib/types";
 import { useState } from "react";
 import Image from "next/image";
 import { Bell, CheckCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { getTitle } from "@/lib/data/catalog";
-import { notifications } from "@/lib/data/content";
 import { useApp } from "@/components/providers/app-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,14 +17,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function NotificationsMenu() {
+export function NotificationsMenu({ items }: { items: AppNotification[] }) {
   const { openTitle } = useApp();
-  const [unread, setUnread] = useState(
-    () => new Set(notifications.filter((n) => n.unread).map((n) => n.id))
-  );
-  const items = notifications
-    .map((n) => ({ ...n, title: getTitle(n.titleId) }))
-    .filter((n) => n.title);
+  const [unread, setUnread] = useState(() => new Set(items.filter((n) => n.unread).map((n) => n.id)));
 
   const markRead = (id) =>
     setUnread((prev) => {
@@ -66,6 +60,7 @@ export function NotificationsMenu() {
         </div>
         <DropdownMenuSeparator className="m-0" />
         <div className="max-h-[min(26rem,70svh)] overflow-y-auto p-1">
+          {!items.length && <p className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications yet.</p>}
           {items.map((n) => {
             const isUnread = unread.has(n.id);
             return (
@@ -73,7 +68,7 @@ export function NotificationsMenu() {
                 key={n.id}
                 onSelect={() => {
                   markRead(n.id);
-                  openTitle(n.titleId);
+                  openTitle(n.title.id, n.title);
                 }}
                 className="items-start gap-3 rounded-md p-2"
               >

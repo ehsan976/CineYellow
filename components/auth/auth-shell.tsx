@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { getPosterWall } from "@/lib/tmdb/home";
 import { BrandLogo, MarketingFooter } from "@/components/auth/marketing";
 import { PosterWall } from "@/components/auth/poster-wall";
 
@@ -6,12 +7,14 @@ import { PosterWall } from "@/components/auth/poster-wall";
  * Netflix-style sign-in layout: full-bleed poster collage behind a dark gradient,
  * large logo, a translucent black panel, and a footer band. On phones it's plain black.
  */
-export function AuthShell({ children }: { children: ReactNode }) {
+export async function AuthShell({ children }: { children: ReactNode }) {
+  // Popular TMDB posters (cached for days, part of the static shell).
+  const posters = await getPosterWall();
   return (
     <div className="relative flex min-h-svh flex-col bg-black text-white">
       {/* Background (hidden on phones, like Netflix); fixed so long forms scroll over it */}
       <div aria-hidden className="fixed inset-0 hidden sm:block">
-        <PosterWall className="absolute inset-0" />
+        <PosterWall posters={posters} className="absolute inset-0" />
         <div className="absolute inset-0 bg-black/55" />
         <div className="absolute inset-0 bg-linear-to-b from-black/85 via-transparent to-black/85" />
       </div>

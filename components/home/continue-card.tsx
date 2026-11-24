@@ -1,45 +1,54 @@
 "use client";
 
-import type { ContinueItem } from "@/lib/types";
+import type { ContinueItem, HistoryEntry, Title } from "@/lib/types";
 import Image from "next/image";
 import Link from "next/link";
 import { Play } from "lucide-react";
 
-import { getTitle } from "@/lib/data/catalog";
-import { continueWatching } from "@/lib/data/content";
 import { watchHref } from "@/lib/player/playback";
 import { recentByTitle } from "@/lib/stores/watch-history-store";
+import { useTitles } from "@/lib/stores/title-store";
 import { useWatchHistory } from "@/hooks/use-watch-target";
+import { Row } from "@/components/home/row";
 import { Card, CardContent } from "@/components/ui/card";
 import { CarouselItem } from "@/components/ui/carousel";
 import { Progress } from "@/components/ui/progress";
 
-function minutesLeft(entry) {
+function minutesLeft(entry: HistoryEntry) {
   const left = Math.max(1, Math.round((entry.duration - entry.time) / 60));
   return left >= 60 ? `${Math.floor(left / 60)}h ${String(left % 60).padStart(2, "0")}m left` : `${left}m left`;
 }
 
-/** The viewer's real history first (true progress), then the demo items. */
-export function ContinueWatchingItems() {
+/** "Continue Watching" from the viewer's real history. Hidden when there is nothing to resume. */
+export function ContinueWatchingRow() {
   const history = useWatchHistory();
-  const real = recentByTitle(history).map((entry) => ({
-    titleId: entry.titleId,
-    href: watchHref(entry.titleId, entry.season, entry.episode),
-    info: `${entry.season ? `S${entry.season}:E${entry.episode} · ` : ""}${minutesLeft(entry)}`,
-    progress: Math.round((entry.time / entry.duration) * 100),
-  }));
-  const seen = new Set(real.map((item) => item.titleId));
-  const demo = continueWatching
-    .filter((item) => !seen.has(item.titleId))
-    .map((item) => ({ ...item, href: watchHref(item.titleId, item.season, item.episode) }));
+  const entries = recentByTitle(history).slice(0, 20);
+  const { get } = useTitles(entries.map((entry) => entry.titleId));
 
-  return [...real, ...demo].map((item) => <ContinueCard key={item.titleId} item={item} />);
+  const items = entries
+    .map((entry) => ({
+      title: get(entry.titleId),
+      item: {
+        titleId: entry.titleId,
+        href: watchHref(entry.titleId, entry.season, entry.episode),
+        info: `${entry.season ? `S${entry.season}:E${entry.episode} · ` : ""}${minutesLeft(entry)}`,
+        progress: Math.round((entry.time / entry.duration) * 100),
+      } as ContinueItem,
+    }))
+    .filter((x): x is { title: Title; item: ContinueItem } => Boolean(x.title));
+
+  if (!items.length) return null;
+
+  return (
+    <Row id="continue" title="Continue Watching" contentClassName="-ml-3 py-2">
+      {items.map(({ title, item }) => (
+        <ContinueCard key={item.titleId} title={title} item={item} />
+      ))}
+    </Row>
+  );
 }
 
-export function ContinueCard({ item }: { item: ContinueItem }) {
-  const title = getTitle(item.titleId);
-  if (!title) return null;
-
+export function ContinueCard({ title, item }: { title: Title; item: ContinueItem }) {
   return (
     <CarouselItem className="basis-[60%] pl-3 sm:basis-[40%] md:basis-1/4 lg:basis-1/5 xl:basis-[16%]">
       <Link

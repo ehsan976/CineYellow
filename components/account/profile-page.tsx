@@ -8,7 +8,7 @@ import { Bookmark, Check, Clock, Play, Tv } from "lucide-react";
 import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
-import { getTitle } from "@/lib/data/catalog";
+import { useTitles } from "@/lib/stores/title-store";
 import { watchHref } from "@/lib/player/playback";
 import { avatarColors, languages, planLabel, setActiveProfile, updateProfile } from "@/lib/stores/profile-store";
 import { recentByTitle } from "@/lib/stores/watch-history-store";
@@ -49,6 +49,9 @@ export function ProfilePage() {
   const { profiles, active } = useProfiles();
   const history = useWatchHistory();
   const { planInfo } = useAccount();
+  const inProgress = recentByTitle(history);
+  // Old ids that aren't TMDB titles are skipped quietly.
+  const { get: getTitle } = useTitles([...myList, ...inProgress.slice(0, 8).map((entry) => entry.titleId)]);
 
   if (!hydrated) {
     return (
@@ -65,7 +68,6 @@ export function ProfilePage() {
     );
   }
 
-  const inProgress = recentByTitle(history);
   const minutesWatched = Math.round(Object.values(history).reduce((sum, e) => sum + e.time, 0) / 60);
   const listTitles = myList.map(getTitle).filter(Boolean);
   const stats = [

@@ -7,7 +7,8 @@ import Link from "next/link";
 import { Check, Info, Play, Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { getTitle, metaLine } from "@/lib/data/catalog";
+import { titleSizeClass } from "@/lib/ui";
+import { metaLine } from "@/lib/titles";
 import { useApp } from "@/components/providers/app-context";
 import { useWatchTarget } from "@/hooks/use-watch-target";
 import { Badge } from "@/components/ui/badge";
@@ -46,9 +47,7 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
     };
   }, [api]);
 
-  const slides = items
-    .map((item) => ({ ...item, title: getTitle(item.titleId) }))
-    .filter((s) => s.title);
+  const slides = items;
 
   return (
     <section className="relative">
@@ -56,7 +55,7 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
         <CarouselContent className="ml-0">
           {slides.map(({ title, tagline }, i) => {
             const inList = isInList(title.id);
-            const meta = [title.year, title.rating, metaLine(title), title.genres[0]];
+            const meta = [title.year || "", title.rating, metaLine(title), title.genres[0]].filter(Boolean);
             return (
               <CarouselItem key={title.id} className="pl-0">
                 <div className="relative h-[75svh] max-h-[860px] min-h-[600px] w-full md:h-[88svh] md:min-h-[640px] lg:min-h-[700px]">
@@ -77,13 +76,19 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
                       <Badge className="mb-4 rounded-md px-2.5 tracking-[0.2em] uppercase">
                         Featured
                       </Badge>
-                      <h1 className="text-5xl leading-[0.95] font-black tracking-tight uppercase sm:text-6xl md:text-7xl lg:text-8xl">
+                      <h1
+                        title={title.title}
+                        className={cn(
+                          "line-clamp-3 leading-[0.95] font-black tracking-tight text-balance uppercase",
+                          titleSizeClass(title.title, "hero")
+                        )}
+                      >
                         {title.title}
                       </h1>
                       <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         <span className="font-semibold text-primary">{title.match}% Match</span>
-                        {meta.map((m) => (
-                          <span key={m} className="flex items-center gap-2">
+                        {meta.map((m, i) => (
+                          <span key={i} className="flex items-center gap-2">
                             <span className="size-1 rounded-full bg-primary" />
                             {m}
                           </span>
@@ -95,7 +100,7 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
                         <Button
                           size="lg"
                           variant="outline"
-                          onClick={() => toggleList(title.id)}
+                          onClick={() => toggleList(title.id, title.title)}
                           aria-pressed={inList}
                           className={cn(
                             "h-11 rounded-full border-foreground/30 bg-black/30 px-6 text-base backdrop-blur",
@@ -107,7 +112,7 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
                         <Button
                           size="lg"
                           variant="ghost"
-                          onClick={() => openTitle(title.id)}
+                          onClick={() => openTitle(title.id, title)}
                           className="hidden h-11 rounded-full px-5 text-base sm:inline-flex"
                         >
                           <Info /> More Info

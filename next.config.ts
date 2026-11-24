@@ -7,8 +7,11 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: {
+    // TMDB images never change for a given path, so cache the optimized copies for a month.
+    minimumCacheTTL: 2678400,
     remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com", pathname: "/**" },
+      // TMDB posters, backdrops and episode stills (lib/tmdb/map.ts).
+      { protocol: "https", hostname: "image.tmdb.org", pathname: "/t/p/**" },
     ],
   },
   turbopack: {

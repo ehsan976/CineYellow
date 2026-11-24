@@ -41,6 +41,13 @@ export function Footer() {
         </div>
         <Separator className="my-8" />
         <p className="text-xs text-muted-foreground">© 2026 CineYellow. All rights reserved.</p>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Title data and images from{" "}
+          <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+            TMDB
+          </a>
+          . This product uses the TMDB API but is not endorsed or certified by TMDB.
+        </p>
       </div>
     </footer>
   );

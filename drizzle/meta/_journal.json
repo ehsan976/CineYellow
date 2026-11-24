@@ -50,6 +50,20 @@
       "when": 1794991712903,
       "tag": "0006_payment_tracker_index",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795505875364,
+      "tag": "0007_title_languages",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795507736906,
+      "tag": "0008_title_videos",
+      "breakpoints": true
     }
   ]
 }

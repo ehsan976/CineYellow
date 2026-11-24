@@ -1,12 +1,13 @@
 "use client";
 
-import type { Title } from "@/lib/types";
+import type { Episode, Title } from "@/lib/types";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Play } from "lucide-react";
 
-import { getEpisodes, metaLine, typeLabels } from "@/lib/data/catalog";
+import { metaLine, typeLabels } from "@/lib/titles";
+import { useSeasonEpisodes } from "@/lib/stores/title-store";
 import { watchHref } from "@/lib/player/playback";
 import { useApp } from "@/components/providers/app-context";
 import { useWatchHistory } from "@/hooks/use-watch-target";
@@ -17,11 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /** Episode list with a season picker. Shared by the popup and the title page. */
-export function Episodes({ title, headingClassName = "text-lg" }: { title: Title; headingClassName?: string }) {
+export function Episodes({
+  title,
+  initialEpisodes,
+  headingClassName = "text-lg",
+}: {
+  title: Title;
+  /** Season 1, when the server already has it (title page). Other seasons load from TMDB. */
+  initialEpisodes?: Episode[];
+  headingClassName?: string;
+}) {
   const [season, setSeason] = useState("1");
-  const episodes = getEpisodes(title, Number(season));
+  const { episodes, loading } = useSeasonEpisodes(title, Number(season), initialEpisodes);
   const { closeTitle } = useApp();
   const history = useWatchHistory();
 
@@ -46,6 +57,23 @@ export function Episodes({ title, headingClassName = "text-lg" }: { title: Title
           <span className="text-sm text-muted-foreground">Season 1</span>
         )}
       </div>
+      {loading && (
+        <div className="space-y-3 py-2" aria-busy="true" aria-label="Loading episodes">
+          {Array.from({ length: 4 }, (_, i) => (
+            <div key={i} className="flex items-center gap-4 px-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="aspect-video w-28 rounded-md sm:w-36" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-3 w-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!loading && !episodes.length && (
+        <p className="py-4 text-sm text-muted-foreground">Episode details aren&apos;t available for this season yet.</p>
+      )}
       <ol className="divide-y divide-border">
         {episodes.map((ep) => {
           const saved = history[`${title.id}:s${season}e${ep.number}`];
@@ -93,12 +121,12 @@ export function Details({ title }: { title: Title }) {
   const rows = [
     ["Title", title.title],
     ["Type", typeLabels[title.type]],
-    ["Year", title.year],
+    ["Year", title.year || ""],
     ["Maturity rating", title.rating],
     [title.type === "movie" ? "Runtime" : "Seasons", metaLine(title)],
     ["Genres", title.genres.join(", ")],
     ["Cast", title.cast.join(", ")],
-  ];
+  ].filter(([, v]) => v !== "" && v !== null);
   return (
     <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-[auto_1fr]">
       {rows.map(([k, v]) => (

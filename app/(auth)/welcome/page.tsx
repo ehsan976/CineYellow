@@ -1,3 +1,4 @@
+import { getPosterWall, getTopPicks } from "@/lib/tmdb/home";
 import { LandingPage } from "@/components/auth/landing-page";
 
 export const metadata = {
@@ -5,6 +6,7 @@ export const metadata = {
   description: "Unlimited movies, series, anime and more. Plans start at $6.99. Cancel anytime.",
 };
 
-export default function WelcomePage() {
-  return <LandingPage />;
+export default async function WelcomePage() {
+  const [posters, trending] = await Promise.all([getPosterWall(), getTopPicks(10)]);
+  return <LandingPage posters={posters} trending={trending} />;
 }

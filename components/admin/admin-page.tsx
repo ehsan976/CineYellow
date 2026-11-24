@@ -24,6 +24,7 @@ import { adminAuth } from "@/lib/auth/admin-client";
 import { useSession } from "@/lib/auth/client";
 import { plans } from "@/lib/stores/account-store";
 import { PageHeading } from "@/components/account/settings-ui";
+import { AdminNav } from "@/components/admin/admin-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,6 +156,7 @@ export function AdminPage({ billing = false }: { billing?: boolean }) {
   return (
     <>
       <PageHeading title="Admin" description="Manage accounts: roles, bans, devices and support sign-ins." />
+      <AdminNav />
 
       <Card className="mb-6">
         <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center">

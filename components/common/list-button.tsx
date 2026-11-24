@@ -6,7 +6,18 @@ import { cn } from "@/lib/utils";
 import { useApp } from "@/components/providers/app-context";
 
 /** Round "+ / ✓" button that adds or removes a title from My List. */
-export function ListButton({ titleId, className, size = "sm" }: { titleId: string; className?: string; size?: "sm" | "lg" }) {
+export function ListButton({
+  titleId,
+  name,
+  className,
+  size = "sm",
+}: {
+  titleId: string;
+  /** Title name for the "Added to My List" toast. */
+  name?: string;
+  className?: string;
+  size?: "sm" | "lg";
+}) {
   const { isInList, toggleList } = useApp();
   const inList = isInList(titleId);
 
@@ -15,7 +26,7 @@ export function ListButton({ titleId, className, size = "sm" }: { titleId: strin
       type="button"
       onClick={(e) => {
         e.stopPropagation();
-        toggleList(titleId);
+        toggleList(titleId, name);
       }}
       aria-label={inList ? "Remove from My List" : "Add to My List"}
       aria-pressed={inList}

@@ -1,7 +1,7 @@
 // CineYellow's own tables. Everything hangs off Better Auth's `user` row and is removed with it
 // (onDelete: cascade), so "Delete account" also clears profiles, lists and history.
-import type { AvatarColor, PaymentProvider, PlanId, PlayerPrefs } from "@/lib/types";
-import { relations } from "drizzle-orm";
+import type { AvatarColor, LanguageStatus, PaymentProvider, PlanId, PlayerPrefs } from "@/lib/types";
+import { relations, sql } from "drizzle-orm";
 import { boolean, index, integer, jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema";
@@ -106,6 +106,62 @@ export const payment = pgTable(
   ],
 );
 
+/**
+ * Audio and subtitle languages of one TMDB title (ISO 639-2 codes, e.g. "hin", "eng").
+ * The first visit to a title page fills it from Movie of the Night ("unverified"); an admin can
+ * then edit the lists and mark them "verified". Not tied to a user, so it is kept when users go.
+ */
+export const titleLanguage = pgTable(
+  "title_language",
+  {
+    /** "movie-550" | "tv-1399" (lib/titles.ts). */
+    titleId: text("title_id").primaryKey(),
+    /** For the admin list and search. */
+    titleName: text("title_name").notNull().default(""),
+    imdbId: text("imdb_id"),
+    audioLanguages: text("audio_languages").array().notNull().default(sql`'{}'::text[]`),
+    subtitleLanguages: text("subtitle_languages").array().notNull().default(sql`'{}'::text[]`),
+    status: text("status").$type<LanguageStatus>().notNull().default("unverified"),
+    /** Who wrote the lists last: the API ("api") or an admin ("admin"). */
+    source: text("source").$type<"api" | "admin">().notNull().default("api"),
+    /** "not_found": Movie of the Night had no entry for the title. "manual": added by an admin. */
+    fetchResult: text("fetch_result").$type<"ok" | "not_found" | "manual">().notNull().default("ok"),
+    /** Country whose streaming options the languages came from. */
+    country: text("country").notNull().default("in"),
+    fetchedAt: timestamp("fetched_at"),
+    verifiedAt: timestamp("verified_at"),
+    verifiedBy: text("verified_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("title_language_status_idx").on(table.status, table.updatedAt)],
+);
+
+/**
+ * Video for a title or one episode, added by an admin (/admin/videos). `key` is "movie-550",
+ * "tv-1399" (whole show) or "tv-1399:s1e3". Titles without a row play the demo stream.
+ */
+export const titleVideo = pgTable(
+  "title_video",
+  {
+    key: text("key").primaryKey(),
+    titleId: text("title_id").notNull(),
+    titleName: text("title_name").notNull().default(""),
+    season: integer("season"),
+    episode: integer("episode"),
+    /** "hls" (site player) | "embed" (host's player in an iframe). */
+    kind: text("kind").$type<"hls" | "embed">().notNull(),
+    url: text("url").notNull(),
+    introStart: integer("intro_start"),
+    introEnd: integer("intro_end"),
+    creditsAt: integer("credits_at"),
+    createdBy: text("created_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [index("title_video_title_idx").on(table.titleId)],
+);
+
 export const profileRelations = relations(profile, ({ one, many }) => ({
   user: one(user, { fields: [profile.userId], references: [user.id] }),
   myList: many(myList),
@@ -126,4 +182,8 @@ export const userSettingsRelations = relations(userSettings, ({ one }) => ({
 
 export const paymentRelations = relations(payment, ({ one }) => ({
   user: one(user, { fields: [payment.userId], references: [user.id] }),
+}));
+
+export const titleLanguageRelations = relations(titleLanguage, ({ one }) => ({
+  verifier: one(user, { fields: [titleLanguage.verifiedBy], references: [user.id] }),
 }));

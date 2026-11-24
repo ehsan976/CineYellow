@@ -1,7 +1,7 @@
 "use client";
 
-import type { Title } from "@/lib/types";
-import { Check, Play, Plus, Share2 } from "lucide-react";
+import type { Title, Trailer } from "@/lib/types";
+import { Check, Play, Plus, Server, Share2 } from "lucide-react";
 import { toast } from "sonner";
 
 import Link from "next/link";
@@ -9,10 +9,11 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useApp } from "@/components/providers/app-context";
 import { useWatchTarget } from "@/hooks/use-watch-target";
+import { TrailerButton } from "@/components/title/trailer-button";
 import { Button } from "@/components/ui/button";
 
-/** Play / My List / Share buttons on the full title page. */
-export function TitleActions({ title }: { title: Title }) {
+/** Play / Trailer / My List / Share buttons on the full title page. */
+export function TitleActions({ title, trailer }: { title: Title; trailer?: Trailer | null }) {
   const { id, title: name } = title;
   const { isInList, toggleList } = useApp();
   const target = useWatchTarget(title);
@@ -46,9 +47,20 @@ export function TitleActions({ title }: { title: Title }) {
         </Link>
       </Button>
       <Button
+        asChild
         size="lg"
         variant="outline"
-        onClick={() => toggleList(id)}
+        className="h-11 rounded-full border-foreground/30 bg-black/30 px-5 text-base backdrop-blur hover:border-primary hover:text-primary"
+      >
+        <Link href={`${target.href}${target.href.includes("?") ? "&" : "?"}player=embed`}>
+          <Server className="size-4 text-primary" /> Embed Stream
+        </Link>
+      </Button>
+      <TrailerButton trailer={trailer} titleName={name} className="h-11 px-6 text-base" />
+      <Button
+        size="lg"
+        variant="outline"
+        onClick={() => toggleList(id, name)}
         aria-pressed={inList}
         className={cn(
           "h-11 rounded-full border-foreground/30 bg-black/30 px-6 text-base backdrop-blur",

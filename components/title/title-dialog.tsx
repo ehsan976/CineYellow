@@ -1,14 +1,17 @@
 "use client";
 
-import type { Title } from "@/lib/types";
+import type { Title, Trailer } from "@/lib/types";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowUpRight, Play, X } from "lucide-react";
 
-import { getTitle, metaLine, similarTitles, typeLabels } from "@/lib/data/catalog";
+import { metaLine, typeLabels } from "@/lib/titles";
+import { getKnownTitle, useTitleDetails } from "@/lib/stores/title-store";
+import { titleSizeClass } from "@/lib/ui";
 import { useApp } from "@/components/providers/app-context";
 import { ListButton } from "@/components/common/list-button";
+import { TrailerButton } from "@/components/title/trailer-button";
 import { Details, Episodes } from "@/components/title/title-sections";
 import { useWatchTarget } from "@/hooks/use-watch-target";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +23,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function TitleDialog({
@@ -31,8 +35,10 @@ export function TitleDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
-  const title = getTitle(titleId);
-  if (!title) return null;
+  const details = useTitleDetails(titleId);
+  if (!titleId) return null;
+  // While details load, show what the card already knew (backdrop, name, overview).
+  const title = details?.title ?? getKnownTitle(titleId);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -40,8 +46,32 @@ export function TitleDialog({
         showCloseButton={false}
         className="block max-h-[92svh] gap-0 overflow-y-auto p-0 sm:max-w-3xl"
       >
-        {/* key resets tabs / season when "More Like This" switches title */}
-        <TitleDetails key={title.id} title={title} />
+        {title ? (
+          // key resets tabs / season when "More Like This" switches title
+          <TitleDetails
+            key={title.id}
+            title={title}
+            similar={details?.similar}
+            trailer={details?.trailer}
+            loading={details === undefined}
+          />
+        ) : details === null ? (
+          <div className="p-8 text-center">
+            <DialogTitle className="text-xl font-bold">This title isn&apos;t available</DialogTitle>
+            <DialogDescription className="mt-2">It may have been removed. Try another one.</DialogDescription>
+          </div>
+        ) : (
+          <div className="space-y-4 p-0" aria-busy="true">
+            <DialogTitle className="sr-only">Loading title</DialogTitle>
+            <DialogDescription className="sr-only">Loading details</DialogDescription>
+            <Skeleton className="aspect-video w-full rounded-none" />
+            <div className="space-y-3 px-8 pb-8">
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-2/3" />
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
@@ -61,7 +91,17 @@ function PlayLink({ title }: { title: Title }) {
   );
 }
 
-function TitleDetails({ title }: { title: Title }) {
+function TitleDetails({
+  title,
+  similar,
+  trailer,
+  loading,
+}: {
+  title: Title;
+  similar?: Title[];
+  trailer?: Trailer | null;
+  loading: boolean;
+}) {
   const rootRef = useRef(null);
   const isShow = title.type !== "movie";
 
@@ -97,12 +137,16 @@ function TitleDetails({ title }: { title: Title }) {
           <Badge variant="outline" className="mb-2 border-primary/60 bg-black/40 text-primary">
             {typeLabels[title.type]}
           </Badge>
-          <DialogTitle className="text-3xl leading-none font-black tracking-tight uppercase drop-shadow-lg md:text-5xl">
+          <DialogTitle
+            title={title.title}
+            className={`line-clamp-2 leading-[0.95] font-black tracking-tight text-balance uppercase drop-shadow-lg ${titleSizeClass(title.title, "dialog")}`}
+          >
             {title.title}
           </DialogTitle>
           <div className="mt-4 flex items-center gap-3">
             <PlayLink title={title} />
-            <ListButton titleId={title.id} size="lg" />
+            <TrailerButton trailer={trailer} titleName={title.title} size="default" className="h-10 px-4" />
+            <ListButton titleId={title.id} name={title.title} size="lg" />
             <DialogClose asChild>
               <Button asChild variant="ghost" className="ml-auto h-10 rounded-full bg-black/40 px-4 hover:text-primary">
                 <Link href={`/title/${title.id}`}>
@@ -119,9 +163,9 @@ function TitleDetails({ title }: { title: Title }) {
         <div>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="font-semibold text-primary">{title.match}% Match</span>
-            <span className="text-muted-foreground">{title.year}</span>
-            <Badge variant="outline">{title.rating}</Badge>
-            <span className="text-muted-foreground">{metaLine(title)}</span>
+            {title.year > 0 && <span className="text-muted-foreground">{title.year}</span>}
+            {title.rating && <Badge variant="outline">{title.rating}</Badge>}
+            {metaLine(title) && <span className="text-muted-foreground">{metaLine(title)}</span>}
             <Badge variant="outline" className="text-[10px]">HD</Badge>
           </div>
           <DialogDescription className="mt-3 text-base leading-relaxed text-foreground/90">
@@ -129,10 +173,16 @@ function TitleDetails({ title }: { title: Title }) {
           </DialogDescription>
         </div>
         <dl className="space-y-2 text-sm">
-          <div>
-            <dt className="inline text-muted-foreground">Cast: </dt>
-            <dd className="inline">{title.cast.join(", ")}</dd>
-          </div>
+          {loading && !title.cast.length ? (
+            <Skeleton className="h-4 w-3/4" />
+          ) : (
+            title.cast.length > 0 && (
+              <div>
+                <dt className="inline text-muted-foreground">Cast: </dt>
+                <dd className="inline">{title.cast.join(", ")}</dd>
+              </div>
+            )
+          )}
           <div>
             <dt className="inline text-muted-foreground">Genres: </dt>
             <dd className="inline">{title.genres.join(", ")}</dd>
@@ -154,7 +204,7 @@ function TitleDetails({ title }: { title: Title }) {
           </TabsContent>
         )}
         <TabsContent value="similar">
-          <MoreLikeThis title={title} />
+          {similar ? <MoreLikeThis items={similar} /> : <Skeleton className="h-40 w-full" />}
         </TabsContent>
         <TabsContent value="details">
           <Details title={title} />
@@ -164,9 +214,8 @@ function TitleDetails({ title }: { title: Title }) {
   );
 }
 
-function MoreLikeThis({ title }: { title: Title }) {
+function MoreLikeThis({ items }: { items: Title[] }) {
   const { openTitle } = useApp();
-  const items = similarTitles(title.id);
 
   if (!items.length) {
     return <p className="text-sm text-muted-foreground">No similar titles yet.</p>;
@@ -176,7 +225,7 @@ function MoreLikeThis({ title }: { title: Title }) {
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
       {items.map((t) => (
         <div key={t.id} className="group/sim relative overflow-hidden rounded-lg bg-muted/50 ring-1 ring-white/5 transition hover:ring-primary">
-          <button type="button" onClick={() => openTitle(t.id)} className="block w-full text-left">
+          <button type="button" onClick={() => openTitle(t.id, t)} className="block w-full text-left">
             <span className="relative block aspect-video">
               <Image src={t.image} alt="" fill sizes="240px" className="object-cover" />
               <span className="absolute top-2 left-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-primary">
@@ -186,14 +235,14 @@ function MoreLikeThis({ title }: { title: Title }) {
             <span className="block p-3">
               <span className="flex items-center gap-2 text-xs">
                 <span className="font-semibold text-primary">{t.match}%</span>
-                <span className="rounded border border-border px-1">{t.rating}</span>
-                <span className="text-muted-foreground">{t.year}</span>
+                {t.rating && <span className="rounded border border-border px-1">{t.rating}</span>}
+                {t.year > 0 && <span className="text-muted-foreground">{t.year}</span>}
               </span>
               <span className="mt-1.5 block font-semibold">{t.title}</span>
               <span className="mt-1 line-clamp-3 text-xs text-muted-foreground">{t.description}</span>
             </span>
           </button>
-          <ListButton titleId={t.id} className="absolute top-2 right-2" />
+          <ListButton titleId={t.id} name={t.title} className="absolute top-2 right-2" />
         </div>
       ))}
     </div>

@@ -1,13 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
+import type { Title } from "@/lib/types";
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
 import { useSession } from "@/lib/auth/client";
 import { isPublicPage, loginUrl } from "@/lib/auth/routes";
 import { isLeaving } from "@/lib/stores/auth-store";
-import { getTitle } from "@/lib/data/catalog";
+import { getKnownTitle, rememberTitles } from "@/lib/stores/title-store";
 import {
   getMyList,
   getServerMyList,
@@ -60,10 +61,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Keep the last opened id after closing so the close animation still has content.
   const [dialog, setDialog] = useState({ id: null, open: false });
 
-  const toggleList = useCallback((id) => {
+  // `name` is shown in the toast; callers pass it because a title may not be in the store yet.
+  const toggleList = useCallback((id: string, name?: string) => {
     if (getUserDataStatus() !== "ready") return toast("Still loading your profile…");
     const current = getMyList();
-    const name = getTitle(id)?.title;
+    name ??= getKnownTitle(id)?.title;
     if (current.includes(id)) {
       setMyList(current.filter((x) => x !== id));
       toast("Removed from My List", { description: name });
@@ -73,7 +75,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const openTitle = useCallback((id) => setDialog({ id, open: true }), []);
+  // `preview` (the card's title) lets the popup show the backdrop and name while details load.
+  const openTitle = useCallback((id: string, preview?: Title) => {
+    if (preview) rememberTitles([preview]);
+    setDialog({ id, open: true });
+  }, []);
   const closeTitle = useCallback(() => setDialog((d) => ({ ...d, open: false })), []);
 
   const value = useMemo(

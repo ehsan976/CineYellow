@@ -1,5 +1,6 @@
 "use client";
 
+import type { AppNotification } from "@/lib/types";
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -29,7 +30,7 @@ const hasHeroUnderHeader = (pathname) => pathname === "/" || pathname.startsWith
 const isActive = (pathname, href) =>
   href === "/" ? pathname === "/" : pathname.startsWith(href);
 
-export function Navbar() {
+export function Navbar({ notifications = [] }: { notifications?: AppNotification[] }) {
   const pathname = usePathname();
   const { myList, hydrated } = useApp();
   const auth = useAuth();
@@ -99,7 +100,7 @@ export function Navbar() {
             <span className="size-8 rounded-full bg-muted" aria-hidden />
           ) : auth.signedIn ? (
             <>
-              <NotificationsMenu />
+              <NotificationsMenu items={notifications} />
               <ProfileMenu />
             </>
           ) : (

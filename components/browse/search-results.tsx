@@ -1,15 +1,12 @@
-"use client";
-
+import type { Title } from "@/lib/types";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { SearchX } from "lucide-react";
 
-import { searchTitles, titles } from "@/lib/data/catalog";
 import { gridClass } from "@/lib/ui";
 import { PosterCard } from "@/components/common/poster-card";
 import { SearchBox } from "@/components/layout/search-box";
 
-const popularSearches = ["Anime", "Thriller", "Comedy", "Romance", "Sci-Fi", "Night", "Horror", "Sports"];
+const popularSearches = ["Anime", "Thriller", "Comedy", "Romance", "Sci-Fi", "Horror", "Documentary", "Shah Rukh Khan"];
 
 function PopularChips() {
   return (
@@ -28,11 +25,8 @@ function PopularChips() {
   );
 }
 
-export function SearchResults() {
-  const q = useSearchParams().get("q")?.trim() ?? "";
-  const results = searchTitles(q);
-  const topPicks = [...titles].sort((a, b) => b.match - a.match).slice(0, 12);
-
+/** Results (or, with no query, popular searches and top picks). Data comes from the server page. */
+export function SearchResults({ q, results, topPicks }: { q: string; results: Title[]; topPicks: Title[] }) {
   return (
     <div>
       {/* Phones and tablets get a big search box here (the navbar one is desktop only). */}

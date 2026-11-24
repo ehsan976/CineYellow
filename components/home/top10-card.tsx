@@ -3,7 +3,7 @@
 import type { RowItem } from "@/lib/types";
 import Image from "next/image";
 
-import { getTitle } from "@/lib/data/catalog";
+import { PLACEHOLDER_POSTER } from "@/lib/titles";
 import { useApp } from "@/components/providers/app-context";
 import { CardBadges, listButtonReveal } from "@/components/home/landscape-card";
 import { ListButton } from "@/components/common/list-button";
@@ -11,8 +11,7 @@ import { CarouselItem } from "@/components/ui/carousel";
 
 export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
   const { openTitle } = useApp();
-  const title = getTitle(item.titleId);
-  if (!title) return null;
+  const { title } = item;
 
   return (
     <CarouselItem className="basis-[62%] pl-2 sm:basis-[40%] md:basis-[30%] lg:basis-[22%] xl:basis-[18%]">
@@ -27,7 +26,7 @@ export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
         <div className="relative aspect-2/3 w-[62%] overflow-hidden rounded-md bg-card ring-1 ring-white/5 transition-all duration-300 group-hover/card:ring-2 group-hover/card:ring-primary">
           <button
             type="button"
-            onClick={() => openTitle(title.id)}
+            onClick={() => openTitle(title.id, title)}
             aria-label={`Number ${rank}: ${title.title} — details`}
             className="absolute inset-0 block text-left"
           >
@@ -39,12 +38,15 @@ export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
               className="object-cover transition-transform duration-500 group-hover/card:scale-110"
             />
             <span className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
-            <span className="absolute inset-x-2 bottom-7 text-center text-sm leading-none font-black uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] md:text-base">
-              {title.title}
-            </span>
+            {/* TMDB posters already show the name; write it only on the placeholder. */}
+            {title.poster === PLACEHOLDER_POSTER && (
+              <span className="absolute inset-x-2 bottom-7 line-clamp-3 text-center text-sm leading-tight font-black uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)] md:text-base">
+                {title.title}
+              </span>
+            )}
             <CardBadges badge={item.badge} watchNow={item.watchNow} compact />
           </button>
-          <ListButton titleId={title.id} className={`absolute top-2 right-2 ${listButtonReveal}`} />
+          <ListButton titleId={title.id} name={title.title} className={`absolute top-2 right-2 ${listButtonReveal}`} />
         </div>
       </div>
     </CarouselItem>

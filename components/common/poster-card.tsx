@@ -6,7 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Play } from "lucide-react";
 
-import { metaLine, typeLabels } from "@/lib/data/catalog";
+import { metaLine, typeLabels } from "@/lib/titles";
 import { useApp } from "@/components/providers/app-context";
 import { listButtonReveal } from "@/components/home/landscape-card";
 import { ListButton } from "@/components/common/list-button";
@@ -20,7 +20,7 @@ export function PosterCard({ title, priority = false, asLink = false }: { title:
   const Body: ElementType = asLink ? Link : "button";
   const bodyProps: Record<string, unknown> = asLink
     ? { href: `/title/${title.id}` }
-    : { type: "button", onClick: () => openTitle(title.id) };
+    : { type: "button", onClick: () => openTitle(title.id, title) };
 
   return (
     <div className="group/card relative">
@@ -45,21 +45,26 @@ export function PosterCard({ title, priority = false, asLink = false }: { title:
           <span className="absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 scale-75 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 transition-all duration-300 group-hover/card:scale-100 group-hover/card:opacity-100">
             <Play className="size-5 fill-current" />
           </span>
-          <span className="absolute inset-x-3 bottom-3 text-base leading-tight font-black uppercase drop-shadow-[0_2px_6px_rgba(0,0,0,0.9)]">
-            {title.title}
-          </span>
         </span>
-        <span className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+        {/* Under the poster, not on it: TMDB posters already show the name as artwork. */}
+        <span title={title.title} className="mt-2 block truncate text-sm font-semibold">
+          {title.title}
+        </span>
+        <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-semibold text-primary">{title.match}%</span>
-          <span>{title.year}</span>
-          <span className="size-1 rounded-full bg-muted-foreground/60" />
-          <span>{metaLine(title)}</span>
+          {title.year > 0 && <span>{title.year}</span>}
+          {metaLine(title) && (
+            <>
+              <span className="size-1 rounded-full bg-muted-foreground/60" />
+              <span>{metaLine(title)}</span>
+            </>
+          )}
         </span>
         <span className="mt-0.5 block truncate text-xs text-muted-foreground">
           {title.genres.join(" · ")}
         </span>
       </Body>
-      <ListButton titleId={title.id} className={`absolute top-2 right-2 ${listButtonReveal}`} />
+      <ListButton titleId={title.id} name={title.title} className={`absolute top-2 right-2 ${listButtonReveal}`} />
     </div>
   );
 }

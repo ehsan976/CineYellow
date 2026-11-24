@@ -1,5 +1,6 @@
 "use client";
 
+import type { Title } from "@/lib/types";
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -7,21 +8,12 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, Download, MonitorSmartphone, Plus, Smile, Tv } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { getTitle } from "@/lib/data/catalog";
-import { trendingRows } from "@/lib/data/content";
 import { plans } from "@/lib/stores/account-store";
 import { BrandLogo, MarketingFooter } from "@/components/auth/marketing";
 import { PosterWall } from "@/components/auth/poster-wall";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-
-// Mix of today's top movies and series
-const trending = [0, 1, 2, 3, 4]
-  .flatMap((i) => [trendingRows[1].items[i], trendingRows[0].items[i]])
-  .map((item) => getTitle(item.titleId))
-  .filter(Boolean)
-  .slice(0, 10);
 
 const reasons = [
   { title: "Enjoy on your TV", text: "Watch on smart TVs, PlayStation, Xbox, Chromecast, Apple TV, Blu-ray players and more.", icon: Tv },
@@ -110,14 +102,15 @@ function EmailSignup({ id }: { id: string }) {
   );
 }
 
-export function LandingPage() {
+/** `posters` fill the hero collage; `trending` is this week's top movies and series (TMDB). */
+export function LandingPage({ posters, trending }: { posters: string[]; trending: Title[] }) {
   const [open, setOpen] = useState(null);
 
   return (
     <div className="bg-black text-white">
       {/* Hero */}
       <section className="relative flex min-h-[640px] flex-col sm:min-h-[700px] lg:min-h-[86svh]">
-        <PosterWall className="absolute inset-0" />
+        <PosterWall posters={posters} className="absolute inset-0" />
         <div aria-hidden className="absolute inset-0 bg-black/60" />
         <div aria-hidden className="absolute inset-0 bg-linear-to-b from-black/90 via-black/30 to-black/95" />
 
@@ -168,8 +161,8 @@ export function LandingPage() {
                     <span className="relative block aspect-2/3 w-[78%] overflow-hidden rounded-lg ring-1 ring-white/10 transition duration-300 group-hover/card:scale-105 group-hover/card:ring-2 group-hover/card:ring-primary">
                       <Image src={t.poster} alt="" fill sizes="(max-width: 640px) 40vw, 16vw" className="object-cover" />
                       <span className="absolute inset-0 bg-linear-to-t from-black/70 via-transparent to-transparent" />
-                      {/* right-aligned so the big number doesn't cover it */}
-                      <span className="absolute right-2 bottom-2 left-[30%] text-right text-sm leading-tight font-black uppercase">{t.title}</span>
+                      {/* No name on top: TMDB posters already show it as artwork. */}
+                      <span className="sr-only">{t.title}</span>
                     </span>
                   </Link>
                 </CarouselItem>

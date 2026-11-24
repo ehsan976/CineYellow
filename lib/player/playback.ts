@@ -1,6 +1,7 @@
 // What to play for a title/episode, and where "next" goes.
-import { getEpisodes } from "@/lib/data/catalog";
-import type { Playback, Title } from "@/lib/types";
+// Client components import watchHref from here, so this file must stay free of server imports:
+// the episode list is passed in by the watch page (TMDB, lib/tmdb/catalog.ts getEpisodes).
+import type { Episode, Playback, Title, VideoSource } from "@/lib/types";
 
 // The only free stream found with multiple qualities, audio languages AND subtitle
 // languages (Video.js's own docs demo, hosted by Mux, CORS-enabled). Every title plays it.
@@ -27,11 +28,31 @@ function clampInt(value: string | string[] | number | undefined, min: number, ma
   return Math.min(Math.max(n, min), max);
 }
 
+/** Loads one season's episodes (the watch page passes TMDB's getEpisodes). */
+export type EpisodeLoader = (title: Title, season: number) => Promise<Episode[]>;
+
+/** Used when TMDB has no episode list for a season, so the player always has something to show. */
+function placeholderEpisode(title: Title, season: number): Episode {
+  return {
+    id: `${title.id}-s${season}e1`,
+    number: 1,
+    name: "Episode 1",
+    runtime: "",
+    image: title.image,
+    summary: title.description,
+  };
+}
+
 /**
  * Resolve what plays for `title` at season `s`, episode `e` (both optional, 1-based).
  * Movies ignore s/e. Episodes roll over to the next season at the end of a season.
  */
-export function getPlayback(title: Title, s?: string | string[], e?: string | string[]): Playback {
+export async function getPlayback(
+  title: Title,
+  s: string | string[] | undefined,
+  e: string | string[] | undefined,
+  loadEpisodes: EpisodeLoader
+): Promise<Playback> {
   const base = {
     titleId: title.id,
     src: DEMO_STREAM.src,
@@ -46,16 +67,19 @@ export function getPlayback(title: Title, s?: string | string[], e?: string | st
     return { ...base, key: title.id, season: null, episode: null, label: null, episodes: [], next: null };
   }
 
-  const season = clampInt(s, 1, title.seasons, 1);
-  const episodes = getEpisodes(title, season);
+  const seasons = Math.max(1, title.seasons ?? 1);
+  const season = clampInt(s, 1, seasons, 1);
+  const loaded = await loadEpisodes(title, season);
+  const episodes = loaded.length ? loaded : [placeholderEpisode(title, season)];
   const number = clampInt(e, 1, episodes.length, 1);
   const current = episodes[number - 1];
 
   let next = null;
   if (number < episodes.length) {
     next = { season, episode: number + 1, data: episodes[number] };
-  } else if (season < title.seasons) {
-    next = { season: season + 1, episode: 1, data: getEpisodes(title, season + 1)[0] };
+  } else if (season < seasons) {
+    const following = await loadEpisodes(title, season + 1);
+    next = { season: season + 1, episode: 1, data: following[0] ?? placeholderEpisode(title, season + 1) };
   }
 
   return {
@@ -67,5 +91,27 @@ export function getPlayback(title: Title, s?: string | string[], e?: string | st
     label: `S${season}:E${number} · ${current.name}`,
     episodes,
     next: next && { ...next, href: watchHref(title.id, next.season, next.episode) },
+  };
+}
+
+/** Far past any real video: the "Next episode" card then only appears when the video ends. */
+const NO_CREDITS_MARK = 1e7;
+
+/**
+ * Swap the demo stream for an admin-added HLS link (lib/server/title-videos.ts). The Playback
+ * shape stays the same, so the player itself doesn't change. Intro and credits markers come from
+ * the link's settings; without them there is no "Skip Intro" and no early "Next episode" card.
+ */
+export function withVideoSource(playback: Playback, source: VideoSource | null, title: Title): Playback {
+  if (!source || source.kind !== "hls") return playback;
+  const hasIntro = source.introStart !== null && source.introEnd !== null && source.introEnd > source.introStart;
+  return {
+    ...playback,
+    src: source.url,
+    storyboard: "/no-thumbnails.vtt",
+    poster: playback.current?.image || title.backdrop,
+    credit: "",
+    intro: hasIntro ? { start: source.introStart, end: source.introEnd } : { start: 0, end: 0 },
+    creditsAt: source.creditsAt ?? NO_CREDITS_MARK,
   };
 }

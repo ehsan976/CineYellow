@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Bookmark } from "lucide-react";
 
-import { getTitle } from "@/lib/data/catalog";
+import { useTitles } from "@/lib/stores/title-store";
 import { gridClass } from "@/lib/ui";
 import { useApp } from "@/components/providers/app-context";
 import { GridSkeleton } from "@/components/common/grid-skeleton";
@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 
 export function MyList() {
   const { myList, hydrated } = useApp();
-  const items = myList.map(getTitle).filter(Boolean);
+  // Loads the saved titles from TMDB; ids from the old mock catalog are skipped quietly.
+  const { titles: items, pending } = useTitles(myList);
+  const loading = !hydrated || (pending && !items.length);
 
   return (
     <div>
@@ -20,14 +22,14 @@ export function MyList() {
         <h1 className="text-3xl font-black tracking-tight md:text-5xl">My List</h1>
         <span className="mt-3 block h-1 w-16 rounded-full bg-primary" />
         <p className="mt-3 text-muted-foreground">
-          {hydrated && items.length
-            ? `${items.length} saved title${items.length === 1 ? "" : "s"}. Saved in this browser.`
+          {!loading && items.length
+            ? `${items.length} saved title${items.length === 1 ? "" : "s"}.`
             : "Titles you save with the + button show up here."}
         </p>
       </header>
 
-      {!hydrated ? (
-        <GridSkeleton count={6} />
+      {loading ? (
+        <GridSkeleton count={Math.min(Math.max(myList.length, 6), 18)} />
       ) : items.length ? (
         <div className={gridClass}>
           {items.map((t, i) => (

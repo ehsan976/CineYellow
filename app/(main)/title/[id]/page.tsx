@@ -5,27 +5,29 @@ type TitleParams = { params: Promise<{ id: string }> };
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
-import { getTitle, titles, typeLabels } from "@/lib/data/catalog";
+import { getEpisodes, getTitleDetails } from "@/lib/tmdb/catalog";
+import { getPrerenderIds } from "@/lib/tmdb/home";
+import { typeLabels } from "@/lib/titles";
 import { TitleSkeleton } from "@/components/title/title-skeleton";
 import { TitleView } from "@/components/title/title-view";
 
-// Prerender every title page at build time.
-export function generateStaticParams() {
-  return titles.map((t) => ({ id: t.id }));
+// Today's trending titles are prerendered at build time; any other title renders on its first visit.
+export async function generateStaticParams() {
+  return (await getPrerenderIds(20)).map((id) => ({ id }));
 }
 
 export async function generateMetadata({ params }: TitleParams): Promise<Metadata> {
   const { id } = await params;
-  const title = getTitle(id);
+  const title = (await getTitleDetails(id))?.title;
   if (!title) return { title: "Title not found" };
-  const heading = `${title.title} (${title.year})`;
+  const heading = title.year ? `${title.title} (${title.year})` : title.title;
   return {
     title: heading,
     description: title.description,
     openGraph: {
       title: `${heading} · ${typeLabels[title.type]}`,
       description: title.description,
-      images: [{ url: title.backdrop, width: 1920, height: 1080 }],
+      images: [{ url: title.backdrop, width: 1280, height: 720 }],
     },
   };
 }
@@ -42,7 +44,8 @@ export default function TitlePage({ params }: TitleParams) {
 
 async function TitleContent({ params }: TitleParams) {
   const { id } = await params;
-  const title = getTitle(id);
-  if (!title) notFound();
-  return <TitleView title={title} />;
+  const details = await getTitleDetails(id);
+  if (!details) notFound();
+  const initialEpisodes = details.title.type !== "movie" ? await getEpisodes(details.title, 1) : undefined;
+  return <TitleView details={details} initialEpisodes={initialEpisodes} />;
 }

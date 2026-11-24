@@ -1,19 +1,24 @@
-// Shared data types for the whole site. When the API arrives, its responses should map to these.
+// Shared data types for the whole site. Titles and episodes come from TMDB (lib/tmdb/map.ts maps
+// its responses to these); audio/subtitle languages come from Movie of the Night via Postgres.
 
 export type TitleType = "movie" | "series" | "anime";
 
 export interface Title {
+  /** "movie-<TMDB id>" or "tv-<TMDB id>" (lib/titles.ts parseTitleId). */
   id: string;
   title: string;
   type: TitleType;
   genres: string[];
   year: number;
+  /** Maturity label ("13+", "18+", "NR"); "" when unknown (list results). */
   rating: string;
-  /** Runtime like "2h 14m" (movies only). */
+  /** Runtime like "2h 14m" (movies only; null in list results). */
   duration: string | null;
-  /** Number of seasons (series/anime only). */
+  /** Number of seasons (series/anime only; null in list results). */
   seasons: number | null;
+  /** TMDB image path the images were built from. */
   imageId: string;
+  /** Landscape (16:9) image for cards. */
   image: string;
   poster: string;
   backdrop: string;
@@ -33,9 +38,93 @@ export interface Episode {
   summary: string;
 }
 
+/** Everything the title page and popup need beyond the card data. */
+export interface TitleDetails {
+  title: Title;
+  similar: Title[];
+  imdbId: string | null;
+  /** TMDB tagline ("" when it has none). */
+  tagline: string;
+  /** Official trailer on YouTube (from TMDB), if there is one. */
+  trailer: Trailer | null;
+  /** Name in the original language (Japanese for anime); "" when TMDB has none. */
+  originalTitle: string;
+  /** Japanese animation, films included (those keep type "movie"). Gets AniList details. */
+  isAnime: boolean;
+}
+
+/** Anime details from AniList (lib/anilist/anime.ts), matched to a TMDB title. */
+export interface AnimeInfo {
+  anilistId: number;
+  malId: number | null;
+  /** AniList average score, 0–100; null when not enough votes. */
+  score: number | null;
+  studios: string[];
+  /** "Manga", "Light Novel", "Original", … ("" when unknown). */
+  source: string;
+  /** First season's premiere, e.g. "Fall 2024" ("" when unknown). */
+  season: string;
+  /** "Airing", "Finished", "Upcoming", "On hiatus" or "Cancelled". */
+  status: string;
+  /** Episodes of the matched entry (season 1 for shows); null while unknown. */
+  episodes: number | null;
+  /** The next episode of the currently airing season. */
+  nextEpisode: { number: number; airingAt: number } | null;
+  anilistUrl: string;
+  malUrl: string | null;
+}
+
+export interface Trailer {
+  /** YouTube video id. */
+  key: string;
+  name: string;
+}
+
+/**
+ * Where a title or episode's video comes from (added by an admin, table title_video):
+ * "hls" plays in the site's own player, "embed" shows the host's player in an iframe.
+ */
+export interface VideoSource {
+  kind: "hls" | "embed";
+  url: string;
+  /** Seconds; null = no "Skip Intro" button. */
+  introStart: number | null;
+  introEnd: number | null;
+  /** When the end credits start (shows "Next episode"); null = only at the end. */
+  creditsAt: number | null;
+}
+
+/** One page of a browse grid. */
+export interface CatalogPage {
+  items: Title[];
+  page: number;
+  totalPages: number;
+  totalResults: number;
+}
+
+export interface GenreOption {
+  /** Sent back to the server ("all" or a genre key). */
+  value: string;
+  label: string;
+}
+
+export type BrowseSort = "popular" | "newest" | "rating" | "az";
+
+export type LanguageStatus = "unverified" | "verified";
+
+/** Audio / subtitle languages of one title (ISO 639-2 codes), from the title_language table. */
+export interface TitleLanguages {
+  titleId: string;
+  audio: string[];
+  subtitles: string[];
+  status: LanguageStatus;
+  /** True when Movie of the Night had no data for the title. */
+  notFound: boolean;
+}
+
 /** A card in a homepage row. */
 export interface RowItem {
-  titleId: string;
+  title: Title;
   badge?: string;
   watchNow?: boolean;
 }
@@ -48,7 +137,7 @@ export interface Row {
 }
 
 export interface FeaturedItem {
-  titleId: string;
+  title: Title;
   tagline: string;
 }
 
@@ -68,7 +157,7 @@ export interface NavLink {
 
 export interface AppNotification {
   id: string;
-  titleId: string;
+  title: Title;
   label: string;
   detail: string;
   time: string;

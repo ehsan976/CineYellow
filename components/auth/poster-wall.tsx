@@ -1,9 +1,6 @@
 import Image from "next/image";
 
 import { cn } from "@/lib/utils";
-import { titles } from "@/lib/data/catalog";
-
-const wall = titles.slice(0, 40);
 
 /**
  * Tilted collage of posters used behind the landing hero and the sign-in pages.
@@ -11,14 +8,14 @@ const wall = titles.slice(0, 40);
  * (depends on the viewport), so load them eagerly — Next.js recommends `loading="eager"`
  * over `preload` in that case.
  */
-export function PosterWall({ className }: { className?: string }) {
+export function PosterWall({ posters, className }: { posters: string[]; className?: string }) {
   return (
     <div aria-hidden className={cn("overflow-hidden", className)}>
       <div className="absolute -inset-[12%] grid -rotate-[8deg] grid-cols-5 gap-2 sm:grid-cols-6 lg:grid-cols-9">
-        {wall.map((t) => (
-          <div key={t.id} className="relative aspect-2/3 overflow-hidden rounded-sm">
+        {posters.map((src) => (
+          <div key={src} className="relative aspect-2/3 overflow-hidden rounded-sm">
             <Image
-              src={t.poster}
+              src={src}
               alt=""
               fill
               sizes="(max-width: 640px) 20vw, 12vw"
