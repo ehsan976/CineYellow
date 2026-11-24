@@ -127,6 +127,10 @@ export function NetflixPlayer({ title, playback }: { title: Title; playback: Pla
               className="h-full w-full"
             >
               <track kind="metadata" label="thumbnails" src={playback.storyboard} default />
+              {/* Subtitle files added in admin; they join the stream's own tracks in the menu. */}
+              {playback.subtitles?.map((t) => (
+                <track key={t.url} kind="subtitles" label={t.label} srcLang={t.lang} src={t.url} />
+              ))}
             </HlsJsVideo>
             <Poster />
             <BufferingIndicator />

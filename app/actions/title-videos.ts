@@ -4,10 +4,10 @@
 import { updateTag } from "next/cache";
 
 import { ForbiddenError, UnauthorizedError, requireAdmin } from "@/lib/server/dal";
-import { deleteTitleVideo, saveTitleVideo, titleVideosTag } from "@/lib/server/title-videos";
+import { ALL_TITLE_VIDEOS_TAG, deleteTitleVideo, saveTitleVideo, titleVideosTag } from "@/lib/server/title-videos";
 import { getTitleDetails } from "@/lib/tmdb/catalog";
 import { isTitleId, makeTitleId } from "@/lib/titles";
-import { checkVideoUrl, type VideoKind } from "@/lib/videos";
+import { checkSubtitles, checkVideoUrl, type VideoKind } from "@/lib/videos";
 
 export type VideoActionResult = { ok: boolean; error?: string; message?: string };
 
@@ -59,6 +59,7 @@ export async function saveTitleVideoAction(input: {
   introStart?: number | string | null;
   introEnd?: number | string | null;
   creditsAt?: number | string | null;
+  subtitles?: { lang?: string; label?: string; url?: string }[];
 }) {
   return attempt(async () => {
     const admin = await requireAdmin();
@@ -81,6 +82,11 @@ export async function saveTitleVideoAction(input: {
     if ((introStart === null) !== (introEnd === null)) throw new InputError("Give both intro start and end, or neither.");
     if (introStart !== null && introEnd <= introStart) throw new InputError("Intro end must be after intro start.");
 
+    // Subtitle files play in the site's own player only (an embed host shows its own captions).
+    const subs = checkSubtitles(input.subtitles);
+    if (!subs.ok) throw new InputError(subs.error);
+    if (subs.tracks.length && checked.kind !== "hls") throw new InputError("Subtitle files work with .m3u8 streams only; embed hosts use their own captions.");
+
     await saveTitleVideo({
       titleId,
       titleName: details.title.title,
@@ -91,9 +97,11 @@ export async function saveTitleVideoAction(input: {
       introStart,
       introEnd,
       creditsAt: seconds(input.creditsAt, "Credits start"),
+      subtitles: subs.tracks,
       adminId: admin.id,
     });
     updateTag(titleVideosTag(titleId));
+    updateTag(ALL_TITLE_VIDEOS_TAG);
     const where = season ? ` S${season}:E${episode}` : "";
     return `Saved ${checked.kind === "hls" ? "stream" : "embed"} for ${details.title.title}${where}`;
   });
@@ -106,6 +114,7 @@ export async function deleteTitleVideoAction(key: string) {
     const titleId = await deleteTitleVideo(key);
     if (!titleId) throw new InputError("That link was already removed.");
     updateTag(titleVideosTag(titleId));
+    updateTag(ALL_TITLE_VIDEOS_TAG);
     return "Link removed";
   });
 }

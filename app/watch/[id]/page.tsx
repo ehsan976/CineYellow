@@ -9,7 +9,8 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 
-import { getEpisodes, getTitle } from "@/lib/tmdb/catalog";
+import { getEpisodes, getTitle, getTitleDetails } from "@/lib/tmdb/catalog";
+import { getAutoSkipTimes } from "@/lib/anilist/aniskip";
 import { getPrerenderIds } from "@/lib/tmdb/home";
 import { getPlayback, withVideoSource } from "@/lib/player/playback";
 import { getVideoSource } from "@/lib/server/title-videos";
@@ -47,8 +48,13 @@ async function WatchContent({ params, searchParams }: WatchProps) {
   const source = await getVideoSource(title.id, demo.season, demo.episode);
   if (source?.kind === "embed") return <EmbedWatch title={title} playback={demo} url={source.url} />;
 
+  // Anime with no admin-set intro/credits times: try AniSkip's community times.
+  const needsTimes = source?.kind === "hls" && (source.introStart === null || source.creditsAt === null);
+  const details = needsTimes ? await getTitleDetails(id) : null;
+  const auto = details ? await getAutoSkipTimes(details, demo.season, demo.episode) : null;
+
   // No link yet → the demo stream; an HLS link → the same player with that stream.
-  const playback = withVideoSource(demo, source, title);
+  const playback = withVideoSource(demo, source, title, auto);
   // key: a new episode remounts the player
   return <NetflixPlayer key={playback.key} title={title} playback={playback} />;
 }

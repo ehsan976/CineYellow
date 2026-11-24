@@ -51,6 +51,24 @@ export interface TmdbDetails extends Omit<TmdbListItem, "genre_ids"> {
   recommendations?: TmdbList;
   similar?: TmdbList;
   videos?: { results?: TmdbVideo[] };
+  /** append_to_response=watch/providers (JustWatch data), keyed by country code. */
+  "watch/providers"?: { results?: Record<string, TmdbWatchRegion> };
+}
+
+export interface TmdbProvider {
+  provider_id: number;
+  provider_name?: string;
+  logo_path?: string | null;
+  display_priority?: number;
+}
+
+export interface TmdbWatchRegion {
+  link?: string;
+  flatrate?: TmdbProvider[];
+  free?: TmdbProvider[];
+  ads?: TmdbProvider[];
+  rent?: TmdbProvider[];
+  buy?: TmdbProvider[];
 }
 
 export interface TmdbVideo {

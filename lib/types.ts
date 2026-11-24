@@ -51,6 +51,28 @@ export interface TitleDetails {
   originalTitle: string;
   /** Japanese animation, films included (those keep type "movie"). Gets AniList details. */
   isAnime: boolean;
+  /** Streaming services carrying it in the site's region (TMDB / JustWatch); null when none. */
+  watchProviders: WatchProviders | null;
+  /** Episodes per season (index 0 = season 1), for shows; [] for movies. */
+  seasonEpisodeCounts: number[];
+}
+
+export interface WatchProvider {
+  id: number;
+  name: string;
+  logo: string;
+}
+
+/** Where a title can be watched legally in one country. */
+export interface WatchProviders {
+  /** TMDB's "Where to watch" page, which links on to each service. */
+  link: string;
+  region: string;
+  stream: WatchProvider[];
+  /** Free, including free with ads. */
+  free: WatchProvider[];
+  rent: WatchProvider[];
+  buy: WatchProvider[];
 }
 
 /** Anime details from AniList (lib/anilist/anime.ts), matched to a TMDB title. */
@@ -72,6 +94,27 @@ export interface AnimeInfo {
   nextEpisode: { number: number; airingAt: number } | null;
   anilistUrl: string;
   malUrl: string | null;
+  /** AniList's TV seasons in order (season 1 first; just the film for movies). */
+  seasons: AnimeSeason[];
+}
+
+export interface AnimeSeason {
+  anilistId: number;
+  malId: number | null;
+  /** null while airing with no announced total. */
+  episodes: number | null;
+  /** false for an announced season that hasn't started. */
+  released: boolean;
+}
+
+/**
+ * Opening / ending times for one episode (seconds), from AniSkip. Each comes with the length of
+ * the video it was measured on: the player only uses it when its own video is that long.
+ */
+export interface SkipTimes {
+  intro: { start: number; end: number; length: number } | null;
+  /** When the ending starts. */
+  credits: { at: number; length: number } | null;
 }
 
 export interface Trailer {
@@ -92,6 +135,18 @@ export interface VideoSource {
   introEnd: number | null;
   /** When the end credits start (shows "Next episode"); null = only at the end. */
   creditsAt: number | null;
+  /** WebVTT subtitle files (HLS videos only; embeds use their host's captions). */
+  subtitles: SubtitleTrack[];
+}
+
+/** One subtitle file for a video. */
+export interface SubtitleTrack {
+  /** ISO 639 code, e.g. "en", "ur", "hin". */
+  lang: string;
+  /** Shown in the player menu, e.g. "English". */
+  label: string;
+  /** https URL of a .vtt file (its host must allow CORS). */
+  url: string;
 }
 
 /** One page of a browse grid. */
@@ -180,6 +235,14 @@ export interface Playback {
   credit: string;
   intro: { start: number; end: number };
   creditsAt: number;
+  /**
+   * Set when intro / credits came from AniSkip instead of an admin: the length of the video they
+   * were measured on. The player ignores them unless its video is that long (useSkipMarkers).
+   */
+  introLength?: number | null;
+  creditsLength?: number | null;
+  /** Subtitle files attached to the video in admin (WebVTT). */
+  subtitles?: SubtitleTrack[];
   /** "title" for movies, "title:s1e3" for episodes — the resume key. */
   key: string;
   season: number | null;

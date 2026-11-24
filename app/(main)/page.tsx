@@ -5,6 +5,7 @@ import { Row } from "@/components/home/row";
 import { LandscapeCard } from "@/components/home/landscape-card";
 import { Top10Card } from "@/components/home/top10-card";
 import { ContinueWatchingRow } from "@/components/home/continue-card";
+import { PersonalRows } from "@/components/home/personal-rows";
 
 function LandscapeRow({ row }: { row: RowData }) {
   return (
@@ -33,6 +34,8 @@ export default async function Home() {
         )}
 
         <ContinueWatchingRow />
+        {/* From this profile's history + My List (client-side; nothing while signed out). */}
+        <PersonalRows />
 
         {/* 1. First three landscape rows */}
         {topRows.map((row) => (

@@ -1,7 +1,7 @@
 // What to play for a title/episode, and where "next" goes.
 // Client components import watchHref from here, so this file must stay free of server imports:
 // the episode list is passed in by the watch page (TMDB, lib/tmdb/catalog.ts getEpisodes).
-import type { Episode, Playback, Title, VideoSource } from "@/lib/types";
+import type { Episode, Playback, SkipTimes, Title, VideoSource } from "@/lib/types";
 
 // The only free stream found with multiple qualities, audio languages AND subtitle
 // languages (Video.js's own docs demo, hosted by Mux, CORS-enabled). Every title plays it.
@@ -95,23 +95,30 @@ export async function getPlayback(
 }
 
 /** Far past any real video: the "Next episode" card then only appears when the video ends. */
-const NO_CREDITS_MARK = 1e7;
+export const NO_CREDITS_MARK = 1e7;
+export const NO_INTRO = { start: 0, end: 0 };
 
 /**
  * Swap the demo stream for an admin-added HLS link (lib/server/title-videos.ts). The Playback
  * shape stays the same, so the player itself doesn't change. Intro and credits markers come from
- * the link's settings; without them there is no "Skip Intro" and no early "Next episode" card.
+ * the link's settings, else from AniSkip (`auto`, anime only; the player checks they fit the
+ * video); without either there is no "Skip Intro" and no early "Next episode" card.
  */
-export function withVideoSource(playback: Playback, source: VideoSource | null, title: Title): Playback {
+export function withVideoSource(playback: Playback, source: VideoSource | null, title: Title, auto: SkipTimes | null = null): Playback {
   if (!source || source.kind !== "hls") return playback;
   const hasIntro = source.introStart !== null && source.introEnd !== null && source.introEnd > source.introStart;
+  const autoIntro = !hasIntro ? auto?.intro : null;
+  const autoCredits = source.creditsAt === null ? auto?.credits : null;
   return {
     ...playback,
     src: source.url,
     storyboard: "/no-thumbnails.vtt",
     poster: playback.current?.image || title.backdrop,
     credit: "",
-    intro: hasIntro ? { start: source.introStart, end: source.introEnd } : { start: 0, end: 0 },
-    creditsAt: source.creditsAt ?? NO_CREDITS_MARK,
+    intro: hasIntro ? { start: source.introStart, end: source.introEnd } : autoIntro ? { start: autoIntro.start, end: autoIntro.end } : NO_INTRO,
+    introLength: autoIntro?.length ?? null,
+    creditsAt: source.creditsAt ?? autoCredits?.at ?? NO_CREDITS_MARK,
+    creditsLength: autoCredits?.length ?? null,
+    subtitles: source.subtitles,
   };
 }

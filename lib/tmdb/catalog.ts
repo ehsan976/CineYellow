@@ -8,7 +8,18 @@ import { cacheTag } from "next/cache";
 import { setCacheLife } from "@/lib/tmdb/cache";
 import { mapLimit, tmdbGet } from "@/lib/tmdb/client";
 import { tmdb } from "@/lib/tmdb/config";
-import { dedupeTitles, genreLabel, isAnime, pickTrailer, toEpisodes, toFullTitle, toSummaryTitle, type GenreMap } from "@/lib/tmdb/map";
+import {
+  dedupeTitles,
+  genreLabel,
+  isAnime,
+  pickTrailer,
+  toEpisodes,
+  toFullTitle,
+  toSeasonEpisodeCounts,
+  toSummaryTitle,
+  toWatchProviders,
+  type GenreMap,
+} from "@/lib/tmdb/map";
 import { parseTitleId, type TmdbMedia } from "@/lib/titles";
 
 const ANIMATION = 16;
@@ -56,8 +67,8 @@ export async function getTitleDetails(id: string): Promise<TitleDetails | null> 
   }
   const append =
     ref.media === "movie"
-      ? "credits,release_dates,recommendations,similar,external_ids,videos"
-      : "aggregate_credits,content_ratings,recommendations,similar,external_ids,videos";
+      ? "credits,release_dates,recommendations,similar,external_ids,videos,watch/providers"
+      : "aggregate_credits,content_ratings,recommendations,similar,external_ids,videos,watch/providers";
   const [res, genres] = await Promise.all([
     // include_video_language: trailers in English, Hindi or with no language set.
     tmdbGet<TmdbDetails>(`/${ref.media}/${ref.tmdbId}`, { append_to_response: append, include_video_language: "en,hi,null" }),
@@ -84,6 +95,8 @@ export async function getTitleDetails(id: string): Promise<TitleDetails | null> 
     trailer: pickTrailer(details.videos?.results),
     originalTitle: (details.original_name ?? details.original_title ?? "").trim(),
     isAnime: isAnime((details.genres ?? []).map((g) => g.id), details),
+    watchProviders: toWatchProviders(details, tmdb.region),
+    seasonEpisodeCounts: ref.media === "tv" ? toSeasonEpisodeCounts(details) : [],
   };
 }
 
