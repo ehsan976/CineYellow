@@ -6,8 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 /** Page heading used by /account and /settings. */
 export function PageHeading({ title, description }: { title: ReactNode; description?: ReactNode }) {
   return (
-    <header className="mb-8">
-      <h1 className="text-3xl font-black tracking-tight md:text-5xl">{title}</h1>
+    <header className="mb-6 md:mb-8">
+      <h1 className="text-2xl font-black tracking-tight sm:text-3xl md:text-5xl">{title}</h1>
       <span className="mt-3 block h-1 w-16 rounded-full bg-primary" />
       {description && <p className="mt-3 max-w-2xl text-muted-foreground">{description}</p>}
     </header>
@@ -31,7 +31,7 @@ export function SettingsCard({
         <CardTitle className="text-lg">{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
-      <CardContent className="divide-y divide-border">{children}</CardContent>
+      <CardContent className="@container divide-y divide-border">{children}</CardContent>
     </Card>
   );
 }
@@ -52,13 +52,13 @@ export function SettingRow({
 }) {
   return (
     <div className={cn("flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between", className)}>
-      <div className="min-w-0">
+      <div className="min-w-0 wrap-anywhere">
         <label htmlFor={htmlFor} className="font-medium">
           {label}
         </label>
         {hint && <p className="text-sm text-muted-foreground">{hint}</p>}
       </div>
-      <div className="shrink-0">{children}</div>
+      <div className="max-w-full shrink-0">{children}</div>
     </div>
   );
 }

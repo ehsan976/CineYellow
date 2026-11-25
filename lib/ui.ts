@@ -1,6 +1,7 @@
 // Shared layout classes used by server and client components.
+// Phones: three posters across, like an app; more columns as the screen widens.
 export const gridClass =
-  "grid grid-cols-2 gap-x-3 gap-y-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6";
+  "grid grid-cols-3 gap-x-2 gap-y-4 sm:grid-cols-4 sm:gap-x-3 sm:gap-y-6 lg:grid-cols-5 xl:grid-cols-6";
 
 // Heading sizes for a title's name, smaller as the name gets longer, so real (often long) TMDB
 // names stay below the navbar. Full class strings so Tailwind can see them.

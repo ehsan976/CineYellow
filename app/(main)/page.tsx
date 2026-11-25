@@ -26,7 +26,7 @@ export default async function Home() {
     <main className="overflow-x-hidden">
       {featured.length > 0 ? <Hero items={featured} /> : <div className="h-28" />}
 
-      <div className={featured.length > 0 ? "relative z-10 -mt-12 space-y-10 md:-mt-20" : "relative z-10 space-y-10"}>
+      <div className={featured.length > 0 ? "relative z-10 space-y-6 md:-mt-20 md:space-y-10" : "relative z-10 space-y-6 md:space-y-10"}>
         {empty && (
           <p className="mx-auto max-w-[1600px] px-4 text-muted-foreground md:px-10">
             Couldn&apos;t load titles right now. Please try again in a minute.
@@ -44,7 +44,7 @@ export default async function Home() {
 
         {/* 2. Trending — two Top 10 rows */}
         {trendingRows.length > 0 && (
-          <div id="trending" className="space-y-10 bg-linear-to-b from-transparent via-primary/[0.04] to-transparent py-4">
+          <div id="trending" className="space-y-6 md:space-y-10 bg-linear-to-b from-transparent via-primary/[0.04] to-transparent py-4">
             {trendingRows.map((row) => (
               <Row key={row.id} id={row.id} title={row.title} href={row.href} contentClassName="-ml-2 py-2">
                 {row.items.map((item, i) => (

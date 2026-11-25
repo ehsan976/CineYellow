@@ -42,7 +42,7 @@ export function PaymentDialog({ plan, onClose }: { plan: PlanId | null; onClose:
 
   return (
     <Dialog open={!!plan} onOpenChange={(open) => !open && close()}>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {info?.name} plan · {info?.price}

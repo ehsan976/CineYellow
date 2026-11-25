@@ -53,7 +53,7 @@ export function ContinueWatchingRow() {
 export function ContinueCard({ title, item }: { title: Title; item: ContinueItem }) {
   const warm = useRowWarm();
   return (
-    <CarouselItem className="basis-[60%] pl-3 sm:basis-[40%] md:basis-1/4 lg:basis-1/5 xl:basis-[16%]">
+    <CarouselItem className="basis-[42%] pl-3 sm:basis-[30%] md:basis-1/4 lg:basis-1/5 xl:basis-[16%]">
       <Link
         href={item.href}
         aria-label={`Continue ${title.title}, ${item.info}`}
@@ -77,7 +77,7 @@ export function ContinueCard({ title, item }: { title: Title; item: ContinueItem
           </div>
           <Progress value={item.progress} className="h-1 rounded-none" />
           <CardContent className="px-3 py-2.5">
-            <p className="truncate font-semibold">{title.title}</p>
+            <p className="truncate text-sm font-semibold md:text-base">{title.title}</p>
             <p className="text-xs text-muted-foreground">{item.info}</p>
           </CardContent>
         </Card>

@@ -77,8 +77,8 @@ export function Row({
       onPointerEnter={warm ? undefined : () => setWarm(true)}
       onFocus={warm ? undefined : () => setWarm(true)}
     >
-      <div className="mx-auto mb-3 flex max-w-[1600px] items-center justify-between px-4 md:px-10">
-        <h2 className="text-lg font-bold md:text-xl">
+      <div className="mx-auto mb-1 flex max-w-[1600px] items-center justify-between gap-3 px-4 md:mb-3 md:px-10">
+        <h2 className="min-w-0 text-base font-bold md:text-xl">
           {href ? (
             <Link href={href} className="group/title flex items-center gap-1 hover:text-primary">
               {heading}
@@ -88,7 +88,7 @@ export function Row({
           )}
         </h2>
         {href && (
-          <Link href={href} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+          <Link href={href} className="shrink-0 text-xs font-medium text-muted-foreground transition-colors hover:text-primary md:text-sm">
             See All
           </Link>
         )}
