@@ -1,7 +1,6 @@
 "use client";
 
 import type { ContinueItem, HistoryEntry, Title } from "@/lib/types";
-import Image from "next/image";
 import Link from "next/link";
 import { Play } from "lucide-react";
 
@@ -12,6 +11,8 @@ import { useWatchHistory } from "@/hooks/use-watch-target";
 import { Row } from "@/components/home/row";
 import { Card, CardContent } from "@/components/ui/card";
 import { CarouselItem } from "@/components/ui/carousel";
+import { CardImage } from "@/components/common/card-image";
+import { PLACEHOLDER_LANDSCAPE } from "@/lib/titles";
 import { useRowWarm } from "@/components/home/row";
 import { Progress } from "@/components/ui/progress";
 
@@ -60,8 +61,9 @@ export function ContinueCard({ title, item }: { title: Title; item: ContinueItem
       >
         <Card className="group/card gap-0 py-0 transition-all hover:ring-2 hover:ring-primary">
           <div className="relative aspect-4/3 overflow-hidden">
-            <Image
+            <CardImage
               src={title.image}
+              fallback={PLACEHOLDER_LANDSCAPE}
               alt=""
               fill
               sizes="(max-width: 640px) 60vw, 20vw"

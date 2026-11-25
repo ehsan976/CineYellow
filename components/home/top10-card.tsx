@@ -1,13 +1,13 @@
 "use client";
 
 import type { RowItem } from "@/lib/types";
-import Image from "next/image";
 
 import { PLACEHOLDER_POSTER } from "@/lib/titles";
 import { useApp } from "@/components/providers/app-context";
 import { CardBadges, listButtonReveal } from "@/components/home/landscape-card";
 import { ListButton } from "@/components/common/list-button";
 import { CarouselItem } from "@/components/ui/carousel";
+import { CardImage } from "@/components/common/card-image";
 import { useRowWarm } from "@/components/home/row";
 
 export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
@@ -32,8 +32,9 @@ export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
             aria-label={`Number ${rank}: ${title.title} — details`}
             className="absolute inset-0 block text-left"
           >
-            <Image
+            <CardImage
               src={title.poster}
+              fallback={PLACEHOLDER_POSTER}
               alt=""
               fill
               sizes="(max-width: 640px) 40vw, (max-width: 1024px) 20vw, 12vw"
