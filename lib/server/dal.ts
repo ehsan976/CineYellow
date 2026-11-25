@@ -10,6 +10,7 @@ import { db } from "@/db";
 import { myList, payment, profile, session as sessionTable, user as userTable, userSettings, watchHistory } from "@/db/schema";
 import { auth } from "@/lib/auth/server";
 import { billingEnabled } from "@/lib/payments/config";
+import { isCheckoutPaused } from "@/lib/payments/service";
 import { isPlanId } from "@/lib/user-data";
 import { createUserDefaults } from "@/lib/server/user-defaults";
 
@@ -44,9 +45,21 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
   };
 }
 
+/**
+ * The signed-in user, confirmed against the database. Better Auth's session comes from a cookie
+ * cache that can be up to 5 minutes old, so a ban or "sign out everywhere" wouldn't stop writes
+ * until it expired. One query checks that the session row still exists and the user isn't banned.
+ */
 export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
   if (!user) throw new UnauthorizedError();
+  const [row] = await db
+    .select({ banned: userTable.banned })
+    .from(sessionTable)
+    .innerJoin(userTable, eq(userTable.id, sessionTable.userId))
+    .where(and(eq(sessionTable.token, user.sessionToken), eq(sessionTable.userId, user.id), gt(sessionTable.expiresAt, sql`now()`)))
+    .limit(1);
+  if (!row || row.banned) throw new UnauthorizedError();
   return user;
 }
 
@@ -70,6 +83,60 @@ export async function requireAdmin(): Promise<CurrentUser> {
   const roles = (row?.role ?? "").split(",").map((r) => r.trim());
   if (!row || row.banned || !roles.includes("admin")) throw new ForbiddenError();
   return user;
+}
+
+/** One shape (this project builds without strict mode, so unions don't narrow). */
+export interface WatchAccess {
+  allowed: boolean;
+  /** Why not, when `allowed` is false. */
+  reason: "ok" | "signed-out" | "no-plan";
+  /** A Safepay payment from the last day is still waiting for confirmation. */
+  pendingPayment: boolean;
+  /** Admins may preview titles that have no video yet (the demo stream), to test the player. */
+  isAdmin: boolean;
+}
+
+const WATCH_OK: WatchAccess = { allowed: true, reason: "ok", pendingPayment: false, isAdmin: false };
+const SIGNED_OUT: WatchAccess = { allowed: false, reason: "signed-out", pendingPayment: false, isAdmin: false };
+
+/**
+ * May the signed-in user play videos right now? Checked on the server before the watch page
+ * reads a video link, so the stream / embed URL never reaches someone without access (the
+ * player's own "Choose a plan" screen is only a convenience on top of this).
+ * - Signed out, banned, or a revoked session: no.
+ * - Admins: always (to check the videos they add).
+ * - Payments off (no Safepay keys): yes, like the rest of demo mode.
+ * - Payments on: only with paid time that hasn't ended.
+ */
+export async function getWatchAccess(): Promise<WatchAccess> {
+  const user = await getCurrentUser();
+  if (!user) return SIGNED_OUT;
+
+  const [[row], [sessionRow], [paid], [pending]] = await Promise.all([
+    db.select({ role: userTable.role, banned: userTable.banned }).from(userTable).where(eq(userTable.id, user.id)).limit(1),
+    // The session comes from a 5-minute cookie cache; make sure it still exists.
+    db.select({ id: sessionTable.id }).from(sessionTable).where(eq(sessionTable.token, user.sessionToken)).limit(1),
+    billingEnabled
+      ? db
+          .select({ id: payment.id })
+          .from(payment)
+          .where(and(eq(payment.userId, user.id), eq(payment.status, "paid"), gt(payment.periodEnd, sql`now()`)))
+          .limit(1)
+      : Promise.resolve([]),
+    billingEnabled
+      ? db
+          .select({ id: payment.id })
+          .from(payment)
+          .where(and(eq(payment.userId, user.id), eq(payment.status, "pending"), gt(payment.createdAt, sql`now() - interval '1 day'`)))
+          .limit(1)
+      : Promise.resolve([]),
+  ]);
+  if (!row || row.banned || !sessionRow) return SIGNED_OUT;
+
+  const isAdmin = (row.role ?? "").split(",").map((r) => r.trim()).includes("admin");
+  if (isAdmin) return { ...WATCH_OK, isAdmin: true };
+  if (!billingEnabled || paid) return WATCH_OK;
+  return { allowed: false, reason: "no-plan", pendingPayment: Boolean(pending), isAdmin: false };
 }
 
 /** The user plus one of *their* profiles. Throws if the id belongs to someone else. */
@@ -156,6 +223,7 @@ export async function getUserData(user: CurrentUser): Promise<UserData> {
       ? { id: pending.id, plan: pending.plan, createdAt: pending.createdAt.toISOString() }
       : null;
   const demoPlan = isPlanId(userRow?.plan) ? userRow.plan : user.plan;
+  const checkoutPaused = billingEnabled && (await isCheckoutPaused());
 
   return {
     account: {
@@ -163,6 +231,7 @@ export async function getUserData(user: CurrentUser): Promise<UserData> {
       // With a gateway on, only paid time that hasn't ended counts; demo mode uses the user's field.
       plan: billingEnabled ? (access?.plan ?? null) : demoPlan,
       billing: billingEnabled,
+      checkoutPaused,
       access,
       pendingPayment,
       memberSince: user.createdAt.toISOString().slice(0, 10),

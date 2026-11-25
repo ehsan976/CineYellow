@@ -23,8 +23,16 @@ export function titleType(media: TmdbMedia, genreIds: number[], item: Pick<TmdbL
   return isAnime(genreIds, item) ? "anime" : "series";
 }
 
+/** Languages / countries whose animation counts as "anime" here: Japanese anime, Korean
+ * animation and Chinese donghua (TMDB writes Chinese as "zh" or "cn"). */
+export const ANIME_LANGUAGES = ["ja", "ko", "zh", "cn"];
+const ANIME_COUNTRIES = ["JP", "KR", "CN", "TW", "HK"];
+
 export function isAnime(genreIds: number[], item: Pick<TmdbListItem, "original_language" | "origin_country">): boolean {
-  return genreIds.includes(ANIMATION) && (item.original_language === "ja" || Boolean(item.origin_country?.includes("JP")));
+  return (
+    genreIds.includes(ANIMATION) &&
+    (ANIME_LANGUAGES.includes(item.original_language ?? "") || Boolean(item.origin_country?.some((c) => ANIME_COUNTRIES.includes(c))))
+  );
 }
 
 export function formatRuntime(minutes?: number | null): string | null {
@@ -139,11 +147,18 @@ export function toFullTitle(media: TmdbMedia, details: TmdbDetails, region: stri
 }
 
 /** Season episodes, renumbered 1..n in order (the player and episode menu work by position). */
+/**
+ * TMDB episodes → ours, keeping TMDB's own episode numbers (so links, resume keys and admin video
+ * keys match TMDB even when a season starts at 0 or skips a number). Duplicate or invalid numbers
+ * are dropped.
+ */
 export function toEpisodes(raw: TmdbEpisode[] | undefined, title: Title, season: number): Episode[] {
+  const seen = new Set<number>();
   return [...(raw ?? [])]
+    .filter((ep) => Number.isInteger(ep.episode_number) && ep.episode_number >= 1 && !seen.has(ep.episode_number) && seen.add(ep.episode_number))
     .sort((a, b) => a.episode_number - b.episode_number)
-    .map((ep, i) => {
-      const n = i + 1;
+    .map((ep) => {
+      const n = ep.episode_number;
       return {
         id: `${title.id}-s${season}e${n}`,
         number: n,

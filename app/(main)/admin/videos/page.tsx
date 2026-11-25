@@ -2,7 +2,8 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/server/dal";
-import { listTitleVideos } from "@/lib/server/title-videos";
+import { listProviders, listTitleVideos } from "@/lib/server/title-videos";
+import { VideoProvidersAdmin } from "@/components/admin/video-providers-admin";
 import { PageHeading } from "@/components/account/settings-ui";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { TitleVideosAdmin } from "@/components/admin/title-videos-admin";
@@ -19,7 +20,7 @@ export default function VideosAdminPage({ searchParams }: Props) {
     <main className="mx-auto max-w-[1200px] px-4 pt-24 pb-8 md:px-10">
       <PageHeading
         title="Admin"
-        description="Attach the video for a movie or an episode: an HLS stream (.m3u8) plays in the site's player; a YouTube, Vimeo, Bunny, Cloudflare, Mux or Dailymotion link shows that host's player. Titles without a link play the demo video."
+        description="Attach the video for a movie or an episode: an HLS stream (.m3u8) plays in the site's player; a YouTube, Vimeo, Bunny, Cloudflare, Mux or Dailymotion link shows that host's player. Titles without a link show viewers “Not on CineYellow yet” with where to watch it; admins still get the demo video to test the player."
       />
       <AdminNav />
       <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
@@ -39,6 +40,11 @@ async function VideosContent({ searchParams }: Props) {
   const params = await searchParams;
   const q = first(params.q).slice(0, 100);
   const page = Math.min(Math.max(1, Number.parseInt(first(params.page), 10) || 1), 1000);
-  const data = await listTitleVideos({ q, page });
-  return <TitleVideosAdmin {...data} q={q} />;
+  const [data, providers] = await Promise.all([listTitleVideos({ q, page }), listProviders()]);
+  return (
+    <>
+      <VideoProvidersAdmin providers={providers} />
+      <TitleVideosAdmin {...data} q={q} />
+    </>
+  );
 }

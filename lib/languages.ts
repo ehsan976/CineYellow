@@ -41,6 +41,25 @@ export function normalizeLanguageCode(raw: unknown): string | null {
   return /^[a-z]{3}$/.test(base) ? base : null;
 }
 
+/**
+ * Do two language tags mean the same language? Different parts of the site write the same
+ * language differently: streams say "en" or "eng" or "en-US", admin subtitles store "eng",
+ * Settings stores "en". Compare their ISO 639-2 forms; fall back to exact text otherwise.
+ */
+export function sameLanguage(a: unknown, b: unknown): boolean {
+  if (typeof a !== "string" || typeof b !== "string" || !a || !b) return false;
+  const ca = canonical(normalizeLanguageCode(a));
+  const cb = canonical(normalizeLanguageCode(b));
+  return ca && cb ? ca === cb : a.trim().toLowerCase() === b.trim().toLowerCase();
+}
+
+// ISO 639-2 has two codes for some languages ("B" and "T"); treat them as one.
+const B_TO_T: Record<string, string> = {
+  chi: "zho", fre: "fra", ger: "deu", dut: "nld", per: "fas", may: "msa", cze: "ces",
+  slo: "slk", rum: "ron", gre: "ell", baq: "eus", ice: "isl", ori: "ory",
+};
+const canonical = (code: string | null) => (code ? (B_TO_T[code] ?? code) : null);
+
 export function isLanguageCode(code: unknown): code is string {
   return typeof code === "string" && /^[a-z]{3}$/.test(code);
 }

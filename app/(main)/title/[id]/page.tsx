@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 
 import { getEpisodes, getTitleDetails } from "@/lib/tmdb/catalog";
 import { getPrerenderIds } from "@/lib/tmdb/home";
+import { getAvailableTitleIds } from "@/lib/server/title-videos";
 import { typeLabels } from "@/lib/titles";
 import { TitleSkeleton } from "@/components/title/title-skeleton";
 import { TitleView } from "@/components/title/title-view";
@@ -44,8 +45,8 @@ export default function TitlePage({ params }: TitleParams) {
 
 async function TitleContent({ params }: TitleParams) {
   const { id } = await params;
-  const details = await getTitleDetails(id);
+  const [details, availableIds] = await Promise.all([getTitleDetails(id), getAvailableTitleIds()]);
   if (!details) notFound();
   const initialEpisodes = details.title.type !== "movie" ? await getEpisodes(details.title, 1) : undefined;
-  return <TitleView details={details} initialEpisodes={initialEpisodes} />;
+  return <TitleView details={{ ...details, available: availableIds.includes(id) }} initialEpisodes={initialEpisodes} />;
 }

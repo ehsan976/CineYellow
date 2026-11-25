@@ -158,12 +158,27 @@ export async function setTitleLanguagesVerified(titleId: string, verified: boole
   return rows.length > 0;
 }
 
-/** Asks Movie of the Night again and replaces the lists (back to "unverified"). */
-export async function refetchTitleLanguages(ref: TitleRef): Promise<{ ok: true; found: boolean } | { ok: false; reason: string }> {
+/**
+ * Asks Movie of the Night again and replaces the lists (back to "unverified"). A row an admin has
+ * verified keeps its lists: only the fetch date and title name are refreshed (`kept: true`), so an
+ * automatic answer never overwrites a manual correction. Unverify first to replace it on purpose.
+ */
+export async function refetchTitleLanguages(
+  ref: TitleRef
+): Promise<{ ok: true; found: boolean; kept: boolean } | { ok: false; reason: string }> {
   const result = await fetchShowLanguages(ref);
   if ("reason" in result) return { ok: false, reason: result.reason };
   const now = new Date();
+  const existing = await selectRow(ref.id);
+  if (existing?.status === "verified") {
+    await db
+      .update(titleLanguage)
+      .set({ titleName: ref.name.slice(0, 300), fetchedAt: now, fetchResult: result.found ? "ok" : "not_found", updatedAt: now })
+      .where(eq(titleLanguage.titleId, ref.id));
+    return { ok: true, found: result.found, kept: true };
+  }
   const values = {
+    titleName: ref.name.slice(0, 300),
     audioLanguages: result.audio,
     subtitleLanguages: result.subtitles,
     status: "unverified" as LanguageStatus,
@@ -177,9 +192,46 @@ export async function refetchTitleLanguages(ref: TitleRef): Promise<{ ok: true; 
   };
   await db
     .insert(titleLanguage)
-    .values({ titleId: ref.id, titleName: ref.name.slice(0, 300), imdbId: ref.imdbId ?? null, ...values })
+    .values({ titleId: ref.id, imdbId: ref.imdbId ?? null, ...values })
     .onConflictDoUpdate({ target: titleLanguage.titleId, set: values });
-  return { ok: true, found: result.found };
+  return { ok: true, found: result.found, kept: false };
+}
+
+/**
+ * Background refresh (cron): re-asks Movie of the Night for automatic rows older than 30 days, so
+ * new dubs and subtitles show up. Admin-written or verified rows are never touched. One title at a
+ * time and at most `limit` per run (the API has a small quota). Stops early on auth/rate limits.
+ */
+export async function refreshStaleLanguages(invalidate: (tag: string) => void, limit = 15) {
+  const rows = await db
+    .select({ titleId: titleLanguage.titleId, titleName: titleLanguage.titleName, imdbId: titleLanguage.imdbId })
+    .from(titleLanguage)
+    .where(
+      and(
+        eq(titleLanguage.status, "unverified"),
+        eq(titleLanguage.source, "api"),
+        or(sql`${titleLanguage.fetchedAt} is null`, sql`${titleLanguage.fetchedAt} < now() - interval '30 days'`)
+      )
+    )
+    .orderBy(sql`${titleLanguage.fetchedAt} asc nulls first`)
+    .limit(limit);
+
+  const summary = { due: rows.length, refreshed: 0, failed: 0, stoppedFor: null as string | null };
+  for (const row of rows) {
+    const result = await refetchTitleLanguages({ id: row.titleId, name: row.titleName, imdbId: row.imdbId });
+    if ("reason" in result) {
+      summary.failed++;
+      // A bad key or an exhausted quota won't fix itself during this run.
+      if (result.reason === "auth" || result.reason === "rate_limited" || result.reason === "disabled") {
+        summary.stoppedFor = result.reason;
+        break;
+      }
+      continue;
+    }
+    summary.refreshed++;
+    invalidate(titleLanguagesTag(row.titleId));
+  }
+  return summary;
 }
 
 export async function getTitleLanguageRow(titleId: string) {

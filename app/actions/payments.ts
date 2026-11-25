@@ -7,8 +7,9 @@ import type { PlanId } from "@/lib/types";
 import { UnauthorizedError, requireUser } from "@/lib/server/dal";
 import { safepay } from "@/lib/payments/config";
 import { createSafepayCheckout } from "@/lib/payments/safepay";
-import { createPayment, recheckPayment, setPaymentReference } from "@/lib/payments/service";
+import { createPayment, isCheckoutPaused, recheckPayment, setPaymentReference } from "@/lib/payments/service";
 import { isPlanId } from "@/lib/user-data";
+import { hitLimit } from "@/lib/server/rate-limit";
 
 type Failure = { ok: false; error: string };
 
@@ -24,6 +25,12 @@ export async function startSafepayCheckout(plan: PlanId): Promise<{ ok: true; ur
     if (!safepay.enabled) return { ok: false, error: "Payments aren't set up yet." };
     if (!isPlanId(plan)) return { ok: false, error: "Invalid plan." };
     const user = await requireUser();
+    if (await isCheckoutPaused()) {
+      return { ok: false, error: "Plans open as soon as the first movies and shows are streaming on CineYellow. No payment was taken." };
+    }
+    // Each attempt creates a payment row and calls Safepay twice: cap it per user.
+    const { ok, retryAfter } = hitLimit(user.id, "checkout");
+    if (!ok) return { ok: false, error: `Too many payment attempts. Try again in ${Math.ceil(retryAfter / 60)} min.` };
     const row = await createPayment({ userId: user.id, plan, provider: "safepay" });
     const { tracker, url } = await createSafepayCheckout({ ref: row.id, amount: row.amount });
     await setPaymentReference(row.id, tracker);

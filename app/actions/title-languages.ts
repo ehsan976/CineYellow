@@ -85,6 +85,7 @@ export async function refetchTitleLanguagesAction(titleId: string) {
     const result = await refetchTitleLanguages(await titleRef(titleId));
     if ("reason" in result) throw new InputError(refetchErrors[result.reason] ?? refetchErrors.error);
     updateTag(titleLanguagesTag(titleId));
+    if (result.kept) return { message: "Kept your verified languages. Unverify first to replace them with Movie of the Night's." };
     return { message: result.found ? "Languages fetched" : "Movie of the Night has no data for this title" };
   });
 }

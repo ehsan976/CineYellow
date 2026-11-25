@@ -60,6 +60,7 @@ const INITIAL: State = Object.freeze({
     memberSince: new Date().toISOString().slice(0, 10),
     notifications: { newEpisodes: true, recommendations: true, emailUpdates: false },
     billing: false,
+    checkoutPaused: false,
     access: null,
     pendingPayment: null,
   },

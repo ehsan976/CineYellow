@@ -60,11 +60,15 @@ export function TitleView({ details, initialEpisodes }: { details: TitleDetails;
               {title.year > 0 && <span className="text-muted-foreground">{title.year}</span>}
               {title.rating && <Badge variant="outline">{title.rating}</Badge>}
               {metaLine(title) && <span className="text-muted-foreground">{metaLine(title)}</span>}
-              <Badge variant="outline" className="text-[10px]">HD</Badge>
+              {details.available === false && (
+                <Badge variant="outline" className="border-muted-foreground/40 text-muted-foreground">
+                  Not on CineYellow yet
+                </Badge>
+              )}
             </div>
             <p className="mt-4 text-base leading-relaxed text-foreground/90 md:text-lg">{title.description}</p>
             <div className="mt-7">
-              <TitleActions title={title} trailer={trailer} />
+              <TitleActions title={title} trailer={trailer} available={details.available} />
             </div>
           </div>
         </div>

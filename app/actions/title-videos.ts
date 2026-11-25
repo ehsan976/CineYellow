@@ -4,10 +4,20 @@
 import { updateTag } from "next/cache";
 
 import { ForbiddenError, UnauthorizedError, requireAdmin } from "@/lib/server/dal";
-import { ALL_TITLE_VIDEOS_TAG, deleteTitleVideo, saveTitleVideo, titleVideosTag } from "@/lib/server/title-videos";
+import {
+  ALL_TITLE_VIDEOS_TAG,
+  SourceNotFoundError,
+  deleteTitleVideo,
+  getSourceTitleId,
+  saveTitleVideo,
+  titleVideosTag,
+  updateProvider,
+  updateSource,
+} from "@/lib/server/title-videos";
+import { checkOneSource } from "@/lib/server/source-health";
 import { getTitleDetails } from "@/lib/tmdb/catalog";
 import { isTitleId, makeTitleId } from "@/lib/titles";
-import { checkSubtitles, checkVideoUrl, type VideoKind } from "@/lib/videos";
+import { checkSubtitles, checkVideoUrl, providerIdFor, type VideoKind } from "@/lib/videos";
 
 export type VideoActionResult = { ok: boolean; error?: string; message?: string };
 
@@ -21,6 +31,7 @@ async function attempt(fn: () => Promise<string | void>): Promise<VideoActionRes
     if (error instanceof UnauthorizedError) return { ok: false, error: "Your session has ended. Please sign in again." };
     if (error instanceof ForbiddenError) return { ok: false, error: "Admins only." };
     if (error instanceof InputError) return { ok: false, error: error.message };
+    if (error instanceof SourceNotFoundError) return { ok: false, error: "That link was removed meanwhile. Add it again." };
     console.error(error);
     return { ok: false, error: "Couldn't save. Please try again." };
   }
@@ -50,11 +61,16 @@ function positive(value: unknown, label: string): number | null {
   return n;
 }
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function saveTitleVideoAction(input: {
+  /** Set when editing an existing source; empty adds a new one. */
+  id?: string | null;
   title: string;
   season?: number | string | null;
   episode?: number | string | null;
   url: string;
+  label?: string;
   kind?: VideoKind | "auto";
   introStart?: number | string | null;
   introEnd?: number | string | null;
@@ -87,13 +103,25 @@ export async function saveTitleVideoAction(input: {
     if (!subs.ok) throw new InputError(subs.error);
     if (subs.tracks.length && checked.kind !== "hls") throw new InputError("Subtitle files work with .m3u8 streams only; embed hosts use their own captions.");
 
+    const providerId = providerIdFor(checked.kind, checked.url);
+    if (!providerId) throw new InputError("That video host isn't one of the site's providers.");
+    const id = input.id ? String(input.id) : null;
+    if (id && !UUID.test(id)) throw new InputError("Invalid link.");
+    // Editing can move a source to another title: refresh the old title's cache too.
+    const previousTitleId = id ? await getSourceTitleId(id) : null;
+    if (id && !previousTitleId) throw new InputError("That link was removed meanwhile. Add it again.");
+
     await saveTitleVideo({
+      id,
       titleId,
       titleName: details.title.title,
+      imdbId: details.imdbId,
+      providerId,
       season,
       episode,
       kind: checked.kind,
       url: checked.url,
+      label: typeof input.label === "string" ? input.label : "",
       introStart,
       introEnd,
       creditsAt: seconds(input.creditsAt, "Credits start"),
@@ -101,20 +129,92 @@ export async function saveTitleVideoAction(input: {
       adminId: admin.id,
     });
     updateTag(titleVideosTag(titleId));
+    if (previousTitleId && previousTitleId !== titleId) updateTag(titleVideosTag(previousTitleId));
     updateTag(ALL_TITLE_VIDEOS_TAG);
     const where = season ? ` S${season}:E${episode}` : "";
     return `Saved ${checked.kind === "hls" ? "stream" : "embed"} for ${details.title.title}${where}`;
   });
 }
 
-export async function deleteTitleVideoAction(key: string) {
+export async function deleteTitleVideoAction(id: string) {
   return attempt(async () => {
     await requireAdmin();
-    if (typeof key !== "string" || key.length > 80) throw new InputError("Invalid link.");
-    const titleId = await deleteTitleVideo(key);
+    if (typeof id !== "string" || !UUID.test(id)) throw new InputError("Invalid link.");
+    const titleId = await deleteTitleVideo(id);
     if (!titleId) throw new InputError("That link was already removed.");
     updateTag(titleVideosTag(titleId));
     updateTag(ALL_TITLE_VIDEOS_TAG);
     return "Link removed";
+  });
+}
+
+/** Whole number 0..1000 (lower plays first). */
+function priorityValue(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < 0 || n > 1000) throw new InputError("Priority must be a whole number from 0 to 1000.");
+  return n;
+}
+
+/** Quick change to one source: on/off, priority, label, lock. Only the fields given change. */
+export async function updateSourceAction(
+  id: string,
+  patch: { status?: "active" | "disabled"; priority?: number | string; label?: string; locked?: boolean }
+) {
+  return attempt(async () => {
+    await requireAdmin();
+    if (typeof id !== "string" || !UUID.test(id)) throw new InputError("Invalid link.");
+    const clean: Parameters<typeof updateSource>[1] = {};
+    if (patch?.status !== undefined) {
+      if (patch.status !== "active" && patch.status !== "disabled") throw new InputError("Invalid status.");
+      clean.status = patch.status;
+    }
+    if (patch?.priority !== undefined) clean.priority = priorityValue(patch.priority);
+    if (patch?.label !== undefined) clean.label = String(patch.label).trim().slice(0, 60);
+    if (patch?.locked !== undefined) clean.locked = Boolean(patch.locked);
+    if (!Object.keys(clean).length) throw new InputError("Nothing to change.");
+
+    const titleId = await updateSource(id, clean);
+    if (!titleId) throw new InputError("That link was removed meanwhile.");
+    updateTag(titleVideosTag(titleId));
+    updateTag(ALL_TITLE_VIDEOS_TAG);
+    if (clean.status) return clean.status === "active" ? "Source turned on" : "Source turned off";
+    return "Source updated";
+  });
+}
+
+/** Runs the health check on one source now and records the result. */
+export async function checkSourceAction(id: string) {
+  return attempt(async () => {
+    await requireAdmin();
+    if (typeof id !== "string" || !UUID.test(id)) throw new InputError("Invalid link.");
+    const result = await checkOneSource(id, updateTag);
+    if (!result) throw new InputError("That link was removed meanwhile.");
+    const ms = result.ms !== null ? ` (${result.ms} ms)` : "";
+    if (result.outcome === "ok") {
+      const extra = [
+        result.maxHeight ? `${result.maxHeight}p` : "",
+        result.audioLanguages?.length ? `audio: ${result.audioLanguages.join(", ")}` : "",
+      ].filter(Boolean);
+      return `Working${ms}${extra.length ? ` · ${extra.join(" · ")}` : ""}`;
+    }
+    if (result.outcome === "skipped") return result.error ? `Not checked: ${result.error}` : "This host's player can't be checked from the server";
+    if (result.outcome === "advisory") throw new InputError(`Couldn't tell: ${result.error}`);
+    throw new InputError(`Not working: ${result.error ?? "unknown error"}`);
+  });
+}
+
+/** Turn a provider on/off or change its priority. Affects every title, so every cache refreshes. */
+export async function updateProviderAction(id: string, patch: { enabled?: boolean; priority?: number | string }) {
+  return attempt(async () => {
+    await requireAdmin();
+    if (typeof id !== "string" || !/^[a-z0-9-]{1,40}$/.test(id)) throw new InputError("Invalid provider.");
+    const clean: Parameters<typeof updateProvider>[1] = {};
+    if (patch?.enabled !== undefined) clean.enabled = Boolean(patch.enabled);
+    if (patch?.priority !== undefined) clean.priority = priorityValue(patch.priority);
+    if (!Object.keys(clean).length) throw new InputError("Nothing to change.");
+    if (!(await updateProvider(id, clean))) throw new InputError("Unknown provider.");
+    updateTag(ALL_TITLE_VIDEOS_TAG);
+    if (clean.enabled !== undefined) return clean.enabled ? "Provider turned on" : "Provider turned off";
+    return "Provider updated";
   });
 }
