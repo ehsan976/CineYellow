@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/server/dal";
-import { listProviders, listTitleVideos } from "@/lib/server/title-videos";
+import { listProviders, listTitleVideos } from "@/lib/server/video-sources";
 import { VideoProvidersAdmin } from "@/components/admin/video-providers-admin";
 import { PageHeading } from "@/components/account/settings-ui";
 import { AdminNav } from "@/components/admin/admin-nav";

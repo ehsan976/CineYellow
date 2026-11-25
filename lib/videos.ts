@@ -1,4 +1,4 @@
-// Video links an admin attaches to a title or episode (see lib/server/title-videos.ts).
+// Video links an admin attaches to a title or episode (see lib/server/video-sources.ts).
 // Safe to import anywhere.
 //
 // - "hls": an https .m3u8 stream. Plays in the site's own player.

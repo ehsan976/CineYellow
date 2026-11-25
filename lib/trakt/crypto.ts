@@ -1,6 +1,7 @@
 // Encrypts Trakt tokens before they go into Postgres (AES-256-GCM). The key is derived from
 // BETTER_AUTH_SECRET, so a database dump alone can't be used to act on anyone's Trakt account.
 // Changing BETTER_AUTH_SECRET makes stored tokens unreadable: profiles then simply reconnect.
+import "server-only";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 function key(): Buffer {

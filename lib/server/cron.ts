@@ -2,6 +2,7 @@
 // (vercel.json) or any scheduler that can send a header. Each request must carry
 //   Authorization: Bearer <CRON_SECRET>
 // Without CRON_SECRET set, the jobs are switched off (503), so they can't be triggered by anyone.
+import "server-only";
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 

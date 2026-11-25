@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 
 import { getEpisodes, getTitleDetails } from "@/lib/tmdb/catalog";
 import { getPrerenderIds } from "@/lib/tmdb/home";
-import { getAvailableTitleIds } from "@/lib/server/title-videos";
+import { getAvailableTitleIds } from "@/lib/server/video-sources";
 import { typeLabels } from "@/lib/titles";
 import { TitleSkeleton } from "@/components/title/title-skeleton";
 import { TitleView } from "@/components/title/title-view";

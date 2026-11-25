@@ -12,6 +12,7 @@ import { useWatchHistory } from "@/hooks/use-watch-target";
 import { Row } from "@/components/home/row";
 import { Card, CardContent } from "@/components/ui/card";
 import { CarouselItem } from "@/components/ui/carousel";
+import { useRowWarm } from "@/components/home/row";
 import { Progress } from "@/components/ui/progress";
 
 function minutesLeft(entry: HistoryEntry) {
@@ -49,6 +50,7 @@ export function ContinueWatchingRow() {
 }
 
 export function ContinueCard({ title, item }: { title: Title; item: ContinueItem }) {
+  const warm = useRowWarm();
   return (
     <CarouselItem className="basis-[60%] pl-3 sm:basis-[40%] md:basis-1/4 lg:basis-1/5 xl:basis-[16%]">
       <Link
@@ -63,6 +65,7 @@ export function ContinueCard({ title, item }: { title: Title; item: ContinueItem
               alt=""
               fill
               sizes="(max-width: 640px) 60vw, 20vw"
+              loading={warm ? "eager" : "lazy"}
               className="object-cover transition-transform duration-500 group-hover/card:scale-110"
             />
             <div className="absolute inset-0 bg-linear-to-t from-black/70 to-transparent" />

@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { createContext, useContext, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -11,6 +14,15 @@ import {
 
 const arrow =
   "top-0 bottom-0 z-10 hidden h-auto w-10 rounded-none border-0 bg-black/60 text-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:bg-black/80 hover:text-primary disabled:opacity-0 md:flex [&_svg]:size-7!";
+
+/**
+ * True once the pointer (or keyboard focus) has entered the row. Cards then load their images
+ * eagerly, so the off-screen ones are ready before the arrow is pressed: otherwise a row whose
+ * titles appear nowhere else (e.g. Anime) loads and decodes several large images mid-slide and
+ * the animation stutters. Rows nobody touches stay lazy, so the page doesn't get heavier.
+ */
+const RowWarmContext = createContext(false);
+export const useRowWarm = () => useContext(RowWarmContext);
 
 /** Shared row shell: title + horizontally scrolling shadcn Carousel. */
 export function Row({
@@ -26,6 +38,7 @@ export function Row({
   children: ReactNode;
   contentClassName?: string;
 }) {
+  const [warm, setWarm] = useState(false);
   const heading = (
     <>
       {title}
@@ -34,7 +47,13 @@ export function Row({
   );
 
   return (
-    <section id={id} className="group/row relative">
+    <RowWarmContext.Provider value={warm}>
+    <section
+      id={id}
+      className="group/row relative"
+      onPointerEnter={warm ? undefined : () => setWarm(true)}
+      onFocus={warm ? undefined : () => setWarm(true)}
+    >
       <div className="mx-auto mb-3 flex max-w-[1600px] items-center justify-between px-4 md:px-10">
         <h2 className="text-lg font-bold md:text-xl">
           {href ? (
@@ -61,5 +80,6 @@ export function Row({
         <CarouselNext className={`right-0 rounded-l-md ${arrow}`} />
       </Carousel>
     </section>
+    </RowWarmContext.Provider>
   );
 }

@@ -104,7 +104,7 @@ export const NO_CREDITS_MARK = 1e7;
 export const NO_INTRO = { start: 0, end: 0 };
 
 /**
- * Swap the demo stream for an admin-added HLS link (lib/server/title-videos.ts). The Playback
+ * Swap the demo stream for an admin-added HLS link (lib/server/video-sources.ts). The Playback
  * shape stays the same, so the player itself doesn't change. Intro and credits markers come from
  * the link's settings, else from AniSkip (`auto`, anime only; the player checks they fit the
  * video); without either there is no "Skip Intro" and no early "Next episode" card.

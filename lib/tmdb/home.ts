@@ -1,4 +1,5 @@
 // Homepage rows, the hero carousel, navbar notifications and the poster collage, from TMDB.
+import "server-only";
 import type { AppNotification, FeaturedItem, Row, RowItem, Title } from "@/lib/types";
 import type { TmdbList } from "@/lib/tmdb/types";
 import { cacheTag } from "next/cache";
@@ -7,7 +8,7 @@ import { setCacheLife } from "@/lib/tmdb/cache";
 import { tmdbGet } from "@/lib/tmdb/client";
 import { tmdb } from "@/lib/tmdb/config";
 import { getGenreMaps, getTitleDetails, getTitlesByIds, listToTitles } from "@/lib/tmdb/catalog";
-import { ALL_TITLE_VIDEOS_TAG, getAvailableTitleIds, getRecentVideos } from "@/lib/server/title-videos";
+import { ALL_TITLE_VIDEOS_TAG, getAvailableTitleIds, getRecentVideos } from "@/lib/server/video-sources";
 import { ANIME_LANGUAGES, dedupeTitles } from "@/lib/tmdb/map";
 import type { TmdbMedia } from "@/lib/titles";
 

@@ -1,3 +1,4 @@
+import "server-only";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { PlanId } from "@/lib/types";
 import { betterAuth } from "better-auth";

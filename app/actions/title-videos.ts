@@ -13,7 +13,7 @@ import {
   titleVideosTag,
   updateProvider,
   updateSource,
-} from "@/lib/server/title-videos";
+} from "@/lib/server/video-sources";
 import { checkOneSource } from "@/lib/server/source-health";
 import { getTitleDetails } from "@/lib/tmdb/catalog";
 import { isTitleId, makeTitleId } from "@/lib/titles";

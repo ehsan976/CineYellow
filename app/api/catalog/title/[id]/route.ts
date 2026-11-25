@@ -4,7 +4,7 @@ import { getTitleDetails } from "@/lib/tmdb/catalog";
 import { isTitleId } from "@/lib/titles";
 import { CATALOG_CACHE_HEADERS } from "@/lib/server/catalog-http";
 import { rateLimit } from "@/lib/server/rate-limit";
-import { getAvailableTitleIds } from "@/lib/server/title-videos";
+import { getAvailableTitleIds } from "@/lib/server/video-sources";
 
 /** GET /api/catalog/title/movie-550 → TitleDetails (title, similar titles, IMDb id). */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {

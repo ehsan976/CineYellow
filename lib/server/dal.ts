@@ -1,6 +1,7 @@
 // Data Access Layer: the only place server code reads the session and the user's rows.
 // Every route handler and server action goes through requireUser()/requireProfile(), so a
 // request can only ever touch the signed-in user's own data.
+import "server-only";
 import type { AccessInfo, HistoryEntry, PendingPayment, PlanId } from "@/lib/types";
 import type { UserData } from "@/lib/user-data";
 import { headers } from "next/headers";

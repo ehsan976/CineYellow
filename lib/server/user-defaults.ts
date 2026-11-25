@@ -1,4 +1,5 @@
 // Server only (imported by lib/auth/server.ts, which the Better Auth CLI also loads in plain Node).
+import "server-only";
 import { db } from "@/db";
 import { profile, userSettings } from "@/db/schema";
 
