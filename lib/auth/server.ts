@@ -11,6 +11,7 @@ import * as schema from "@/db/schema";
 import { billingEnabled } from "@/lib/payments/config";
 import { isPlanId } from "@/lib/user-data";
 import { createUserDefaults } from "@/lib/server/user-defaults";
+import { getSiteUrl, getTrustedOrigins } from "@/lib/server/site-url";
 
 const googleId = process.env.GOOGLE_CLIENT_ID;
 const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -29,7 +30,10 @@ export const googleEnabled = Boolean(googleId && googleSecret);
 
 export const auth = betterAuth({
   appName: "CineYellow",
-  baseURL: process.env.BETTER_AUTH_URL,
+  // BETTER_AUTH_URL, or Vercel's production domain when that's missing/localhost (lib/server/site-url.ts).
+  baseURL: getSiteUrl(),
+  // Requests from any of this deployment's own addresses are accepted ("Invalid origin" otherwise).
+  trustedOrigins: getTrustedOrigins(),
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, { provider: "pg", schema }),
   emailAndPassword: {
