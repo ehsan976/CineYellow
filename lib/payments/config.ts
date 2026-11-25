@@ -5,6 +5,7 @@
 // A payment buys PLAN_DAYS of access; the viewer pays again when it runs out.
 
 import "server-only";
+import { getSiteUrl } from "@/lib/server/site-url";
 
 const env = (name: string) => process.env[name]?.trim() || "";
 
@@ -36,6 +37,6 @@ export const safepay = {
 };
 
 /** Public site URL, used for Safepay's redirect and cancel URLs. */
-export const siteUrl = (env("BETTER_AUTH_URL") || "http://localhost:3000").replace(/\/$/, "");
+export const siteUrl = getSiteUrl();
 
 export const billingEnabled = safepay.enabled;

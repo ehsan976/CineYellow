@@ -4,6 +4,7 @@
 // Without both keys the feature is hidden.
 
 import "server-only";
+import { getSiteUrl } from "@/lib/server/site-url";
 
 const env = (name: string) => process.env[name]?.trim() || "";
 
@@ -15,7 +16,7 @@ export const trakt = {
   },
   /** Must match the redirect URI saved in the Trakt app exactly. */
   get redirectUri() {
-    return `${(process.env.BETTER_AUTH_URL || "http://localhost:3000").replace(/\/+$/, "")}/api/trakt/callback`;
+    return `${getSiteUrl()}/api/trakt/callback`;
   },
 };
 
