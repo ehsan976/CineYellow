@@ -146,23 +146,29 @@ export function EmbedWatch({
         {playback.next && (
           <Link
             href={playback.next.href}
-            className="flex items-center gap-1.5 rounded-full border border-white/30 px-3 py-1.5 text-sm hover:border-white"
+            aria-label="Next episode"
+            className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/30 px-3 py-1.5 text-sm hover:border-white"
           >
-            Next episode <SkipForward className="size-4" />
+            <span className="hidden sm:inline">Next episode</span> <SkipForward className="size-4" />
           </Link>
         )}
       </header>
       {src ? (
-        <iframe
-          ref={frame}
-          key={src}
-          src={src}
-          title={playback.label ? `${title.title} — ${playback.label}` : title.title}
-          className="w-full flex-1 border-0"
-          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write; accelerometer; gyroscope"
-          allowFullScreen
-          referrerPolicy="origin"
-        />
+        // Landscape (desktop, phone turned sideways): the host's player fills the space, as before.
+        // Portrait: a 16:9 frame centred, instead of the host's player stretched to the full height
+        // of an upright phone with its artwork cropped. Fullscreen still fills the device.
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <iframe
+            ref={frame}
+            key={src}
+            src={src}
+            title={playback.label ? `${title.title} — ${playback.label}` : title.title}
+            className="size-full border-0 portrait:aspect-video portrait:h-auto"
+            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write; accelerometer; gyroscope"
+            allowFullScreen
+            referrerPolicy="origin"
+          />
+        </div>
       ) : (
         <div className="flex flex-1 items-center justify-center" aria-busy="true" aria-label="Loading player">
           <Loader2 className="size-10 animate-spin text-primary" />
