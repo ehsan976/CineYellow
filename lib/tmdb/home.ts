@@ -7,8 +7,8 @@ import { setCacheLife } from "@/lib/tmdb/cache";
 import { tmdbGet } from "@/lib/tmdb/client";
 import { tmdb } from "@/lib/tmdb/config";
 import { getGenreMaps, getTitleDetails, getTitlesByIds, listToTitles } from "@/lib/tmdb/catalog";
-import { ALL_TITLE_VIDEOS_TAG, getRecentVideos } from "@/lib/server/title-videos";
-import { dedupeTitles } from "@/lib/tmdb/map";
+import { ALL_TITLE_VIDEOS_TAG, getAvailableTitleIds, getRecentVideos } from "@/lib/server/title-videos";
+import { ANIME_LANGUAGES, dedupeTitles } from "@/lib/tmdb/map";
 import type { TmdbMedia } from "@/lib/titles";
 
 interface RowSpec {
@@ -22,12 +22,14 @@ interface RowSpec {
   limit?: number;
 }
 
-const recent = (i: number) => (i < 3 ? { badge: "Recently added" } : {});
-const newEpisode = (i: number) => (i < 2 ? { badge: "New Episode", watchNow: true } : {});
+// Badges only say what's true. TMDB facts (an episode aired this week) are labelled as such;
+// "Watch Now" / "On CineYellow" appear only for titles that really have a video here
+// (getAvailableTitleIds), added in loadRow.
+const newEpisode = (i: number) => (i < 2 ? { badge: "New Episode" } : {});
 
 const TOP: RowSpec[] = [
-  { id: "new", title: "New on CineYellow", href: "/movies", path: "/movie/now_playing", media: "movie", params: { region: tmdb.region }, badge: recent },
-  { id: "new-episodes", title: "New Episodes", href: "/series", path: "/tv/on_the_air", media: "tv", badge: newEpisode },
+  { id: "new", title: "Now in Cinemas", href: "/movies", path: "/movie/now_playing", media: "movie", params: { region: tmdb.region } },
+  { id: "new-episodes", title: "New Episodes This Week", href: "/series", path: "/tv/on_the_air", media: "tv", badge: newEpisode },
   { id: "hindi", title: "Hindi-Language Movies", href: "/movies", path: "/discover/movie", media: "movie", params: { with_original_language: "hi", sort_by: "popularity.desc" } },
 ];
 
@@ -46,8 +48,8 @@ const MORE: RowSpec[] = [
     href: "/anime",
     path: "/discover/tv",
     media: "tv",
-    params: { with_genres: 16, with_original_language: "ja", sort_by: "popularity.desc" },
-    badge: (i) => (i < 2 ? { badge: "New Episode", watchNow: true } : {}),
+    // Japanese anime, Korean animation and Chinese donghua ("|" is OR for TMDB).
+    params: { with_genres: 16, with_original_language: ANIME_LANGUAGES.join("|"), sort_by: "popularity.desc" },
   },
 ];
 
@@ -58,13 +60,20 @@ export interface HomePage {
   moreRows: Row[];
 }
 
-async function loadRow(spec: RowSpec): Promise<Row | null> {
+async function loadRow(spec: RowSpec, available: Set<string>): Promise<Row | null> {
   const [res, genres] = await Promise.all([tmdbGet<TmdbList>(spec.path, { include_adult: false, ...spec.params }), getGenreMaps()]);
   if (!res.ok) return null;
   const map = spec.media === "movie" ? genres.movie : spec.media === "tv" ? genres.tv : genres.all;
   const titles = listToTitles(res.data, map, spec.media).slice(0, spec.limit ?? 12);
   if (!titles.length) return null;
-  return { id: spec.id, title: spec.title, href: spec.href, items: titles.map((title, i) => ({ title, ...spec.badge?.(i) })) };
+  return {
+    id: spec.id,
+    title: spec.title,
+    href: spec.href,
+    items: titles.map((title, i) =>
+      available.has(title.id) ? { title, badge: spec.badge?.(i).badge ?? "On CineYellow", watchNow: true } : { title, ...spec.badge?.(i) }
+    ),
+  };
 }
 
 const tagline = (fromTmdb: string | undefined, title: Title) => {
@@ -75,11 +84,13 @@ const tagline = (fromTmdb: string | undefined, title: Title) => {
 
 export async function getHomePage(): Promise<HomePage> {
   "use cache";
-  cacheTag("tmdb:home");
+  cacheTag("tmdb:home", ALL_TITLE_VIDEOS_TAG);
+  const available = new Set(await getAvailableTitleIds());
+  const load = (spec: RowSpec) => loadRow(spec, available);
   const [top, trending, more, featuredList, genres] = await Promise.all([
-    Promise.all(TOP.map(loadRow)),
-    Promise.all(TRENDING.map(loadRow)),
-    Promise.all(MORE.map(loadRow)),
+    Promise.all(TOP.map(load)),
+    Promise.all(TRENDING.map(load)),
+    Promise.all(MORE.map(load)),
     tmdbGet<TmdbList>("/trending/all/day"),
     getGenreMaps(),
   ]);
@@ -90,7 +101,7 @@ export async function getHomePage(): Promise<HomePage> {
   const details = await Promise.all(candidates.map((t) => getTitleDetails(t.id)));
   const featured: FeaturedItem[] = candidates.map((summary, i) => {
     const title = details[i]?.title ?? summary;
-    return { title, tagline: tagline(details[i]?.tagline, title) };
+    return { title, tagline: tagline(details[i]?.tagline, title), available: available.has(title.id) };
   });
 
   const rows = [...top, ...trending, ...more];

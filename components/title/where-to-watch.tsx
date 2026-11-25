@@ -22,7 +22,7 @@ export function WhereToWatch({ providers }: { providers: WatchProviders | null }
   const groups = GROUPS.map((g) => ({ ...g, items: providers[g.key] })).filter((g) => g.items.length);
 
   return (
-    <section aria-labelledby="where-to-watch-heading" className="border-t border-border pt-3">
+    <section id="where-to-watch" aria-labelledby="where-to-watch-heading" className="scroll-mt-24 border-t border-border pt-3">
       <h3 id="where-to-watch-heading" className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
         <MonitorPlay className="size-4" /> Where to watch
       </h3>

@@ -71,6 +71,27 @@
       "when": 1795537213077,
       "tag": "0009_trakt_subtitles",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795540851038,
+      "tag": "0010_video_sources",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795540863479,
+      "tag": "0011_seed_video_providers",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1795541177485,
+      "tag": "0012_fix_null_checks",
+      "breakpoints": true
     }
   ]
 }

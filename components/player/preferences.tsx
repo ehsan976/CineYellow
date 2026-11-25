@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { usePlayer } from "@videojs/react/video";
 
+import { sameLanguage } from "@/lib/languages";
 import { readPlayerPrefs as read, writePlayerPrefs as write } from "@/lib/stores/player-prefs-store";
 
 const isSubtitle = (t) => t.kind === "subtitles" || t.kind === "captions";
@@ -45,7 +46,7 @@ export function PlayerPreferences() {
       }
       const audioTracks = store.audioTrackList ?? [];
       if (!done.audio && audioTracks.length > 1) {
-        const match = audioTracks.find((t) => t.language && t.language === saved.audioLanguage);
+        const match = audioTracks.find((t) => sameLanguage(t.language, saved.audioLanguage));
         if (match && !match.enabled) store.selectAudioTrack(match.id);
         done.audio = true;
       }
@@ -72,14 +73,14 @@ export function PlayerPreferences() {
         if (showing.length) store.selectSubtitlesTrack(null);
         return;
       }
-      const match = tracks.find((t) => t.language === saved.subtitleLanguage);
+      const match = tracks.find((t) => sameLanguage(t.language, saved.subtitleLanguage));
       if (match) store.selectSubtitlesTrack(match.id);
     };
     // Only one subtitle track should ever show; keep the saved language (or the first) if not.
     const fixMultipleShowing = () => {
       const { showing } = subtitleState();
       if (showing.length <= 1) return;
-      const keep = showing.find((t) => t.language === saved.subtitleLanguage) ?? showing[0];
+      const keep = showing.find((t) => sameLanguage(t.language, saved.subtitleLanguage)) ?? showing[0];
       store.selectSubtitlesTrack(keep.id);
     };
 

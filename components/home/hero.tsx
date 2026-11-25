@@ -3,31 +3,26 @@
 import type { FeaturedItem, Title } from "@/lib/types";
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { Check, Info, Play, Plus } from "lucide-react";
+import { Check, Info, Plus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { titleSizeClass } from "@/lib/ui";
 import { metaLine } from "@/lib/titles";
 import { useApp } from "@/components/providers/app-context";
-import { useWatchTarget } from "@/hooks/use-watch-target";
+import { PlayButton } from "@/components/common/play-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 
-/** "Watch Now" opens the player (resuming when there is history). */
-function HeroWatchButton({ title }: { title: Title }) {
-  const target = useWatchTarget(title);
+/** "Watch Now" opens the player (resuming when there is history); "Where to Watch" if not on the site. */
+function HeroWatchButton({ title, available }: { title: Title; available: boolean }) {
   return (
-    <Button
-      asChild
-      size="lg"
-      className="h-11 rounded-full px-6 text-base font-semibold shadow-[0_0_30px] shadow-primary/30"
-    >
-      <Link href={target.href}>
-        <Play className="fill-current" /> {target.resume ? target.label : "Watch Now"}
-      </Link>
-    </Button>
+    <PlayButton
+      title={title}
+      available={available}
+      className={cn("h-11 px-6 text-base", available && "shadow-[0_0_30px] shadow-primary/30")}
+      label={(target) => (target.resume ? target.label : "Watch Now")}
+    />
   );
 }
 
@@ -53,7 +48,7 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
     <section className="relative">
       <Carousel setApi={setApi} opts={{ loop: true }}>
         <CarouselContent className="ml-0">
-          {slides.map(({ title, tagline }, i) => {
+          {slides.map(({ title, tagline, available }, i) => {
             const inList = isInList(title.id);
             const meta = [title.year || "", title.rating, metaLine(title), title.genres[0]].filter(Boolean);
             return (
@@ -96,7 +91,7 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
                       </div>
                       <p className="mt-4 max-w-md text-base text-foreground/85 md:text-lg">{tagline}</p>
                       <div className="mt-7 flex flex-wrap gap-3">
-                        <HeroWatchButton title={title} />
+                        <HeroWatchButton title={title} available={available} />
                         <Button
                           size="lg"
                           variant="outline"

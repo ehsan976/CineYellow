@@ -71,15 +71,20 @@ export async function getPlayback(
   const season = clampInt(s, 1, seasons, 1);
   const loaded = await loadEpisodes(title, season);
   const episodes = loaded.length ? loaded : [placeholderEpisode(title, season)];
-  const number = clampInt(e, 1, episodes.length, 1);
-  const current = episodes[number - 1];
+  // Episodes carry TMDB's own numbers (they may start above 1 or skip one): find by number, and
+  // fall back to the season's first episode for an unknown one.
+  const requested = clampInt(e, 1, 100_000, episodes[0].number);
+  const index = Math.max(0, episodes.findIndex((ep) => ep.number === requested));
+  const current = episodes[index];
+  const number = current.number;
 
   let next = null;
-  if (number < episodes.length) {
-    next = { season, episode: number + 1, data: episodes[number] };
+  if (index < episodes.length - 1) {
+    next = { season, episode: episodes[index + 1].number, data: episodes[index + 1] };
   } else if (season < seasons) {
     const following = await loadEpisodes(title, season + 1);
-    next = { season: season + 1, episode: 1, data: following[0] ?? placeholderEpisode(title, season + 1) };
+    // An upcoming season with nothing aired yet has no next episode.
+    if (following.length) next = { season: season + 1, episode: following[0].number, data: following[0] };
   }
 
   return {

@@ -1,7 +1,7 @@
 "use client";
 
 import type { AppNotification } from "@/lib/types";
-import { useState } from "react";
+import { useSyncExternalStore } from "react";
 import Image from "next/image";
 import { Bell, CheckCheck } from "lucide-react";
 
@@ -17,16 +17,52 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// Read state is remembered in this browser (per viewer), keyed by what the notification is about
+// ("New Episode:tv-1399"), so it survives reloads and a reshuffled list. Kept to the last 200.
+const READ_KEY = "cineyellow:notifications-read";
+const readListeners = new Set<() => void>();
+let readCache: string[] | null = null;
+
+function getRead(): string[] {
+  if (readCache === null) {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(READ_KEY) ?? "[]");
+      readCache = Array.isArray(parsed) ? parsed.filter((k) => typeof k === "string") : [];
+    } catch {
+      readCache = [];
+    }
+  }
+  return readCache;
+}
+
+function addRead(keys: string[]) {
+  readCache = [...new Set([...getRead(), ...keys])].slice(-200);
+  try {
+    localStorage.setItem(READ_KEY, JSON.stringify(readCache));
+  } catch {
+    // Storage blocked: remembered for this visit only.
+  }
+  readListeners.forEach((listener) => listener());
+}
+
+function subscribeRead(listener: () => void) {
+  readListeners.add(listener);
+  return () => readListeners.delete(listener);
+}
+
+const SERVER_READ: string[] = [];
+const readKeyOf = (n: AppNotification) => `${n.label}:${n.title.id}`;
+
 export function NotificationsMenu({ items }: { items: AppNotification[] }) {
   const { openTitle } = useApp();
-  const [unread, setUnread] = useState(() => new Set(items.filter((n) => n.unread).map((n) => n.id)));
+  const read = useSyncExternalStore(subscribeRead, getRead, () => SERVER_READ);
+  const unread = new Set(items.filter((n) => n.unread && !read.includes(readKeyOf(n))).map((n) => n.id));
 
-  const markRead = (id) =>
-    setUnread((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
+  const markRead = (id: string) => {
+    const n = items.find((item) => item.id === id);
+    if (n) addRead([readKeyOf(n)]);
+  };
+  const setUnread = (next: Set<string>) => addRead(items.filter((n) => !next.has(n.id)).map(readKeyOf));
 
   return (
     <DropdownMenu>
