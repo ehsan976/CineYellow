@@ -159,9 +159,9 @@ export function EmbedWatch({
           src={src}
           title={playback.label ? `${title.title} — ${playback.label}` : title.title}
           className="w-full flex-1 border-0"
-          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write"
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write; accelerometer; gyroscope"
           allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
+          referrerPolicy="origin"
         />
       ) : (
         <div className="flex flex-1 items-center justify-center" aria-busy="true" aria-label="Loading player">

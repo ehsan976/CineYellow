@@ -14,7 +14,7 @@ import { getAutoSkipTimes } from "@/lib/anilist/aniskip";
 import { getPrerenderIds } from "@/lib/tmdb/home";
 import { getPlayback, withVideoSource } from "@/lib/player/playback";
 import type { WatchOption } from "@/lib/types";
-import { getAvailableTitleIds, getVideoSources } from "@/lib/server/title-videos";
+import { getAvailableTitleIds, getVideoSources } from "@/lib/server/video-sources";
 import { NotOnCineYellow } from "@/components/watch/not-on-cineyellow";
 import { NetflixPlayer } from "@/components/player/netflix-player";
 import { WatchSources } from "@/components/watch/watch-sources";

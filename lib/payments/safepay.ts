@@ -7,6 +7,7 @@
 //    state and only a TRACKER_ENDED tracker with the right amount counts as paid.
 // Webhooks (payment.succeeded) are signed: X-SFPY-SIGNATURE = HMAC-SHA512(body, shared secret), hex.
 // (From apidocs.getsafepay.com, safepay-docs.netlify.app and the official @sfpy/node-core.)
+import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { safepay, siteUrl } from "@/lib/payments/config";

@@ -2,6 +2,7 @@
 // a free community database of opening/ending timestamps keyed by MyAnimeList id + episode.
 // Used only when an admin hasn't set the times for a video (lib/player/playback.ts), and the
 // player only trusts them when its video is as long as the one they were measured on.
+import "server-only";
 import type { AnimeSeason, SkipTimes, TitleDetails } from "@/lib/types";
 import { cacheTag } from "next/cache";
 

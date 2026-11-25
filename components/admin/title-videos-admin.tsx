@@ -1,6 +1,6 @@
 "use client";
 
-import type { TitleVideoRow } from "@/lib/server/title-videos";
+import type { TitleVideoRow } from "@/lib/server/video-sources";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";

@@ -3,6 +3,7 @@
 // admins' saves call updateTag(titleVideosTag(titleId)) and updateTag(ALL_TITLE_VIDEOS_TAG).
 //
 // A source plays only when it is "active" and its provider is enabled (video_provider).
+import "server-only";
 import type { SubtitleTrack, VideoSource } from "@/lib/types";
 import { cacheTag } from "next/cache";
 import { and, asc, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";

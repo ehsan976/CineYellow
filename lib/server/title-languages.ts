@@ -4,6 +4,7 @@
 // and saved as "unverified". Every later visit reads the saved row, so the API is called once per
 // title. Admins edit and verify rows from /admin/languages; their saves call updateTag() on
 // titleLanguagesTag(id), so the title page shows the change straight away.
+import "server-only";
 import type { LanguageStatus, TitleLanguages } from "@/lib/types";
 import { cacheTag } from "next/cache";
 import { and, desc, eq, ilike, or, sql, type SQL } from "drizzle-orm";

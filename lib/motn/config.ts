@@ -1,6 +1,8 @@
 // Movie of the Night — Streaming Availability API (v4). Used only for the audio and subtitle
 // languages of a title. Server only. Without a key, languages come only from what admins enter.
 
+import "server-only";
+
 const env = (name: string) => process.env[name]?.trim() || "";
 
 export const motn = {

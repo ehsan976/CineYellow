@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { aniskipTarget } from "@/lib/anilist/aniskip";
 import { sameLanguage } from "@/lib/languages";
-import { oembedUrl, parseHlsManifest } from "@/lib/providers/health";
+import { oembedUrl, parseHlsManifest } from "@/lib/video-providers/health";
 import { isKidsFriendly } from "@/lib/titles";
 import { isAnime, toEpisodes } from "@/lib/tmdb/map";
 import { checkSubtitles, checkVideoUrl, providerIdFor } from "@/lib/videos";

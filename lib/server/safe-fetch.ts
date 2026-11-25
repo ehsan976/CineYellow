@@ -6,6 +6,7 @@
 // - Short timeout and a size cap.
 // (DNS can change between our lookup and the request — "rebinding". Refusing redirects and
 // private answers covers the common cases; a fully closed hole needs an egress proxy.)
+import "server-only";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 
