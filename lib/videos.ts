@@ -1,4 +1,4 @@
-// Video links an admin attaches to a title or episode (see lib/server/title-videos.ts).
+// Video links an admin attaches to a title or episode (see lib/server/video-sources.ts).
 // Safe to import anywhere.
 //
 // - "hls": an https .m3u8 stream. Plays in the site's own player.
@@ -19,6 +19,54 @@ export const EMBED_HOSTS = [
   "Cloudflare Stream",
   "Mux",
   "Dailymotion",
+  "VidLink",
+  "Embed.su",
+  "CineSrc",
+  "VidSrc",
+  "AutoEmbed",
+  "MultiEmbed",
+  "SmashyStream",
+  "2Embed",
+  "Videasy",
+  "MoviesAPI",
+  "RiveStream",
+  "111Movies",
+  "NontonGo",
+  "Frembed",
+] as const;
+
+export const STREAMING_EMBED_DOMAINS = [
+  "vidlink.pro",
+  "embed.su",
+  "cinesrc.st",
+  "cinesrc.xyz",
+  "vidsrc.cc",
+  "vidsrc.to",
+  "vidsrc.pro",
+  "vidsrc.xyz",
+  "vidsrc.net",
+  "vidsrc.me",
+  "vidsrc.vip",
+  "vidsrc.su",
+  "vidsrc.in",
+  "vidsrc.icu",
+  "autoembed.cc",
+  "player.autoembed.cc",
+  "autoembed.me",
+  "multiembed.mov",
+  "embed.smashystream.com",
+  "smashystream.com",
+  "2embed.cc",
+  "2embed.to",
+  "2embed.skin",
+  "videasy.net",
+  "player.videasy.net",
+  "moviesapi.club",
+  "rivestream.live",
+  "111movies.com",
+  "nontongo.win",
+  "frembed.pro",
+  "frembed.fun",
 ] as const;
 
 const YT_ID = /^[\w-]{6,20}$/;
@@ -70,6 +118,10 @@ function toEmbedUrl(url: URL): string | null {
             ? parts[2]
             : url.searchParams.get("video");
     return id && /^[a-z0-9]+$/i.test(id) ? `https://www.dailymotion.com/embed/video/${id}` : null;
+  }
+  // Streaming embed providers (vidlink, vidsrc, autoembed, 2embed, embed.su, cinesrc, etc.)
+  if (STREAMING_EMBED_DOMAINS.some((d) => host === d || host.endsWith(`.${d}`))) {
+    return url.toString();
   }
   return null;
 }
@@ -152,6 +204,20 @@ export function providerIdFor(kind: VideoKind, url: string): string | null {
   if (on("youtube.com", "youtube-nocookie.com", "youtu.be")) return "youtube";
   if (on("vimeo.com")) return "vimeo";
   if (on("dailymotion.com", "dai.ly")) return "dailymotion";
+  if (on("vidlink.pro")) return "vidlink";
+  if (on("embed.su")) return "embed-su";
+  if (on("cinesrc.st", "cinesrc.xyz")) return "cinesrc";
+  if (on("vidsrc.cc", "vidsrc.to", "vidsrc.pro", "vidsrc.xyz", "vidsrc.net", "vidsrc.me", "vidsrc.vip", "vidsrc.su", "vidsrc.in", "vidsrc.icu")) return "vidsrc";
+  if (on("autoembed.cc", "autoembed.me")) return "autoembed";
+  if (on("multiembed.mov")) return "multiembed";
+  if (on("smashystream.com")) return "smashystream";
+  if (on("2embed.cc", "2embed.to", "2embed.skin")) return "2embed";
+  if (on("videasy.net")) return "videasy";
+  if (on("moviesapi.club")) return "moviesapi";
+  if (on("rivestream.live")) return "rivestream";
+  if (on("111movies.com")) return "111movies";
+  if (on("nontongo.win")) return "nontongo";
+  if (on("frembed.pro", "frembed.fun")) return "frembed";
   return null;
 }
 

@@ -129,7 +129,7 @@ export interface Trailer {
 }
 
 /**
- * Where a title or episode's video comes from (table video_source, via lib/server/title-videos.ts):
+ * Where a title or episode's video comes from (table video_source, via lib/server/video-sources.ts):
  * "hls" plays in the site's own player, "embed" shows the host's player in an iframe.
  */
 export interface VideoSource {

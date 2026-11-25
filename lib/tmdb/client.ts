@@ -1,5 +1,6 @@
 // Thin TMDB fetch wrapper. Never throws: callers get { ok: false } and render an empty state.
 // Caching happens one level up, in the "use cache" functions of lib/tmdb/catalog.ts.
+import "server-only";
 import { TMDB_API, tmdb } from "@/lib/tmdb/config";
 
 export type TmdbResult<T> = { ok: true; data: T; status: number } | { ok: false; data?: undefined; status: number };

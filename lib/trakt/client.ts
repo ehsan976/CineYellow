@@ -1,5 +1,6 @@
 // Trakt API calls (https://trakt.docs.apiary.io). Never throw: callers get { ok: false }.
 // Token storage lives in lib/server/trakt.ts; this file only talks HTTP.
+import "server-only";
 import { TRAKT_API, trakt } from "@/lib/trakt/config";
 
 export type TraktResult<T> = { ok: true; data: T; status: number } | { ok: false; status: number; error?: string };

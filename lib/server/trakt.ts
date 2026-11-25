@@ -1,5 +1,6 @@
 // Trakt links per profile (table trakt_connection): tokens, watchlist import, history sync.
 // Callers check the profile belongs to the signed-in user first (requireProfile).
+import "server-only";
 import { eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";

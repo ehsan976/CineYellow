@@ -4,6 +4,8 @@
 //
 // A payment buys PLAN_DAYS of access; the viewer pays again when it runs out.
 
+import "server-only";
+
 const env = (name: string) => process.env[name]?.trim() || "";
 
 /** Days of access one payment gives. */

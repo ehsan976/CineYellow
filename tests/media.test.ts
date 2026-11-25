@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { aniskipTarget } from "@/lib/anilist/aniskip";
 import { sameLanguage } from "@/lib/languages";
-import { oembedUrl, parseHlsManifest } from "@/lib/providers/health";
+import { oembedUrl, parseHlsManifest } from "@/lib/video-providers/health";
 import { isKidsFriendly } from "@/lib/titles";
 import { isAnime, toEpisodes } from "@/lib/tmdb/map";
 import { checkSubtitles, checkVideoUrl, providerIdFor } from "@/lib/videos";
@@ -43,7 +43,10 @@ describe("video links", () => {
     expect(c).toMatchObject({ ok: true, kind: "embed", url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" });
     expect(providerIdFor("embed", c.url)).toBe("youtube");
   });
-  it.each(["https://vidsrc.xyz/embed/movie/550", "https://2embed.cc/embed/550", "http://cdn.example.com/a.m3u8"])("rejects %s", (url) =>
+  it.each(["https://vidsrc.xyz/embed/movie/550", "https://2embed.cc/embed/550"])("accepts known streaming embed %s", (url) => {
+    expect(checkVideoUrl(url).ok).toBe(true);
+  });
+  it.each(["https://malicious-random-site.com/video.html", "http://cdn.example.com/a.m3u8"])("rejects %s", (url) =>
     expect(checkVideoUrl(url).ok).toBe(false)
   );
   it("only accepts https .vtt subtitles with a language", () => {

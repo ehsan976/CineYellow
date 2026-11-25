@@ -5,6 +5,7 @@
 // - "none": nothing to check (signed players like Bunny/Cloudflare/Mux).
 // Rules (borrowed as ideas from the reference repos): 401/403 from a stream host is "advisory"
 // (signed URLs often refuse a bare request) and not a failure; only real errors count.
+import "server-only";
 import { normalizeLanguageCode } from "@/lib/languages";
 import { BlockedUrlError, safeFetch } from "@/lib/server/safe-fetch";
 

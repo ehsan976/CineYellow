@@ -1,6 +1,7 @@
 // The catalog: every title, list and episode the site shows, read from TMDB.
 // Each query is a cached function ("use cache" + an explicit cacheLife). Failed calls are cached
 // for "minutes" only, so a TMDB hiccup or a missing key heals by itself.
+import "server-only";
 import type { BrowseSort, CatalogPage, Episode, GenreOption, Title, TitleDetails, TitleType } from "@/lib/types";
 import type { TmdbDetails, TmdbGenreList, TmdbList, TmdbListItem, TmdbSeason } from "@/lib/tmdb/types";
 import { cacheTag } from "next/cache";
