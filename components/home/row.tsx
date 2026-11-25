@@ -12,8 +12,11 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 
+// At either end of a row the button is disabled: `invisible` hides it completely. (An opacity
+// class alone lost to the row's hover opacity and the button's own disabled:opacity-50, leaving
+// a dim dark box over the last card.)
 const arrow =
-  "top-0 bottom-0 z-10 hidden h-auto w-10 rounded-none border-0 bg-black/60 text-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:bg-black/80 hover:text-primary disabled:opacity-0 md:flex [&_svg]:size-7!";
+  "top-0 bottom-0 z-10 hidden h-auto w-10 rounded-none border-0 bg-black/60 text-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:bg-black/80 hover:text-primary disabled:invisible md:flex [&_svg]:size-7!";
 
 /**
  * True once the pointer (or keyboard focus) has entered the row. Cards then load their images
