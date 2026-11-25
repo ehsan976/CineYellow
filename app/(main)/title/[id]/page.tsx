@@ -48,5 +48,5 @@ async function TitleContent({ params }: TitleParams) {
   const [details, availableIds] = await Promise.all([getTitleDetails(id), getAvailableTitleIds()]);
   if (!details) notFound();
   const initialEpisodes = details.title.type !== "movie" ? await getEpisodes(details.title, 1) : undefined;
-  return <TitleView details={{ ...details, available: availableIds.includes(id) }} initialEpisodes={initialEpisodes} />;
+  return <TitleView details={{ ...details, available: true }} initialEpisodes={initialEpisodes} />;
 }
