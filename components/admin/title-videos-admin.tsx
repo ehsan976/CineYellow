@@ -4,10 +4,17 @@ import type { TitleVideoRow } from "@/lib/server/title-videos";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, ExternalLink, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Activity, ChevronLeft, ChevronRight, ExternalLink, Loader2, Lock, LockOpen, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { deleteTitleVideoAction, saveTitleVideoAction, type VideoActionResult } from "@/app/actions/title-videos";
+import {
+  checkSourceAction,
+  deleteTitleVideoAction,
+  saveTitleVideoAction,
+  updateSourceAction,
+  type VideoActionResult,
+} from "@/app/actions/title-videos";
+import { Switch } from "@/components/ui/switch";
 import { checkVideoUrl, EMBED_HOSTS, MAX_SUBTITLES } from "@/lib/videos";
 import { languageName, normalizeLanguageCode } from "@/lib/languages";
 import { watchHref } from "@/lib/player/playback";
@@ -19,10 +26,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface FormState {
+  /** The source being edited ("" = adding a new source). */
+  id: string;
   title: string;
   season: string;
   episode: string;
   url: string;
+  /** Optional name in the viewer's "Server" menu, e.g. "Hindi dub". */
+  label: string;
   introStart: string;
   introEnd: string;
   creditsAt: string;
@@ -30,15 +41,17 @@ interface FormState {
   subtitles: { lang: string; url: string }[];
 }
 
-const EMPTY: FormState = { title: "", season: "", episode: "", url: "", introStart: "", introEnd: "", creditsAt: "", subtitles: [] };
+const EMPTY: FormState = { id: "", title: "", season: "", episode: "", url: "", label: "", introStart: "", introEnd: "", creditsAt: "", subtitles: [] };
 
 const str = (n: number | null) => (n === null || n === undefined ? "" : String(n));
 
 const fromRow = (row: TitleVideoRow): FormState => ({
+  id: row.id,
   title: row.titleId,
   season: str(row.season),
   episode: str(row.episode),
   url: row.url,
+  label: row.label,
   introStart: str(row.introStart),
   introEnd: str(row.introEnd),
   creditsAt: str(row.creditsAt),
@@ -140,7 +153,7 @@ export function TitleVideosAdmin({
       {rows.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            {q ? "No links match." : "No video links yet. Titles play the demo video until you add one."}
+            {q ? "No links match." : "No video links yet. Until you add one, viewers see “Not on CineYellow yet” (admins get the demo video)."}
           </CardContent>
         </Card>
       ) : (
@@ -156,7 +169,7 @@ export function TitleVideosAdmin({
             </thead>
             <tbody className="divide-y divide-border">
               {rows.map((row) => (
-                <tr key={row.key} className="align-top">
+                <tr key={row.id} className="align-top">
                   <td className="px-4 py-3">
                     <Link href={`/title/${row.titleId}`} className="font-semibold hover:text-primary">
                       {row.titleName || row.titleId}
@@ -166,7 +179,28 @@ export function TitleVideosAdmin({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge variant="outline">{row.kind === "hls" ? "HLS · site player" : "Embed"}</Badge>
+                    <Badge variant="outline">{row.kind === "hls" ? "HLS · site player" : `Embed · ${row.providerName}`}</Badge>
+                    {row.status !== "active" && (
+                      <Badge variant="outline" className="ml-1 border-destructive/50 text-destructive">
+                        {row.status}
+                      </Badge>
+                    )}
+                    <label className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      Priority
+                      <Input
+                        type="number"
+                        min={0}
+                        max={1000}
+                        defaultValue={row.priority}
+                        disabled={busy === `update:${row.id}`}
+                        className="h-7 w-16 px-1.5 text-xs"
+                        onBlur={(e) => {
+                          if (Number(e.target.value) !== row.priority) {
+                            run(`update:${row.id}`, () => updateSourceAction(row.id, { priority: e.target.value }));
+                          }
+                        }}
+                      />
+                    </label>
                     {row.subtitles?.length > 0 && (
                       <Badge variant="outline" className="ml-1" title={row.subtitles.map((t) => t.label).join(", ")}>
                         CC {row.subtitles.length}
@@ -177,9 +211,49 @@ export function TitleVideosAdmin({
                     <span className="block truncate text-xs text-muted-foreground" title={row.url}>
                       {row.url}
                     </span>
+                    <span className="mt-1 block text-[11px] text-muted-foreground">
+                      {row.lastCheckedAt ? `Checked ${new Date(row.lastCheckedAt).toLocaleString()}` : "Not checked yet"}
+                      {row.maxHeight ? ` · ${row.maxHeight}p` : ""}
+                      {row.audioLanguages.length ? ` · audio: ${row.audioLanguages.join(", ")}` : ""}
+                    </span>
+                    {row.lastError && (
+                      <span className="block truncate text-[11px] text-destructive" title={row.lastError}>
+                        {row.lastError}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1">
+                      <Switch
+                        checked={row.status === "active"}
+                        disabled={busy === `update:${row.id}`}
+                        aria-label={row.status === "active" ? "Turn this source off" : "Turn this source on"}
+                        title={row.status === "broken" ? "Marked broken by the health check; turn on to retry" : undefined}
+                        onCheckedChange={(on) =>
+                          run(`update:${row.id}`, () => updateSourceAction(row.id, { status: on ? "active" : "disabled" }))
+                        }
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={busy === `update:${row.id}`}
+                        title={row.locked ? "Locked: automatic updates leave it alone" : "Unlocked: automatic updates may change it"}
+                        aria-label={row.locked ? "Unlock source" : "Lock source"}
+                        aria-pressed={row.locked}
+                        onClick={() => run(`update:${row.id}`, () => updateSourceAction(row.id, { locked: !row.locked }))}
+                      >
+                        {row.locked ? <Lock /> : <LockOpen className="text-muted-foreground" />}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        disabled={busy === `check:${row.id}`}
+                        title="Check now: is it still working?"
+                        aria-label="Check this source now"
+                        onClick={() => run(`check:${row.id}`, () => checkSourceAction(row.id))}
+                      >
+                        {busy === `check:${row.id}` ? <Loader2 className="animate-spin" /> : <Activity />}
+                      </Button>
                       <Button asChild variant="ghost" size="icon" title="Open the watch page">
                         <Link href={watchHref(row.titleId, row.season, row.episode)} target="_blank" aria-label="Open the watch page">
                           <ExternalLink />
@@ -193,13 +267,13 @@ export function TitleVideosAdmin({
                         size="icon"
                         title="Remove"
                         aria-label="Remove link"
-                        disabled={busy === `delete:${row.key}`}
+                        disabled={busy === `delete:${row.id}`}
                         onClick={() => {
                           if (!window.confirm(`Remove the video link for ${row.titleName}?`)) return;
-                          run(`delete:${row.key}`, () => deleteTitleVideoAction(row.key));
+                          run(`delete:${row.id}`, () => deleteTitleVideoAction(row.id));
                         }}
                       >
-                        {busy === `delete:${row.key}` ? <Loader2 className="animate-spin" /> : <Trash2 className="text-destructive" />}
+                        {busy === `delete:${row.id}` ? <Loader2 className="animate-spin" /> : <Trash2 className="text-destructive" />}
                       </Button>
                     </div>
                   </td>
@@ -245,7 +319,7 @@ function VideoForm({ initial, saving, onSave }: { initial: FormState; saving: bo
       className="space-y-5"
     >
       <DialogHeader>
-        <DialogTitle>{initial.title ? "Edit video link" : "Add video link"}</DialogTitle>
+        <DialogTitle>{initial.id ? "Edit video link" : "Add video link"}</DialogTitle>
         <DialogDescription>
           Only add videos you have the rights to show. Accepted: HLS streams (.m3u8) or {EMBED_HOSTS.join(", ")} links.
         </DialogDescription>
@@ -280,6 +354,12 @@ function VideoForm({ initial, saving, onSave }: { initial: FormState; saving: bo
               : checked.error}
           </p>
         )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="video-label">Label (optional)</Label>
+        <Input id="video-label" value={f.label} onChange={set("label")} maxLength={60} placeholder="e.g. Hindi dub, 1080p" />
+        <p className="text-xs text-muted-foreground">Shown in the viewer&apos;s Server menu when a title has more than one source.</p>
       </div>
 
       {isHls && (

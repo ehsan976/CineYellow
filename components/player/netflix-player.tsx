@@ -14,12 +14,10 @@ import { HlsJsVideo } from "@videojs/react/media/hlsjs-video";
 import { VideoPlayer, usePlayer } from "@videojs/react/video";
 
 import { cn } from "@/lib/player/resolve-class-name";
-import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 import { getServerPlayerPrefs, qualityOptions, readPlayerPrefs, subscribePlayerPrefs } from "@/lib/stores/player-prefs-store";
 import { isUserDataReady, subscribeUserData } from "@/lib/stores/user-data-store";
-import { getAccount, getServerAccount, subscribeAccount } from "@/lib/stores/account-store";
 import { Container } from "@/components/videojs/ui/container";
 import { BufferingIndicator } from "@/components/videojs/ui/buffering-indicator";
 import { ErrorDialog } from "@/components/videojs/ui/error-dialog";
@@ -58,7 +56,28 @@ function DevProbe() {
  * Full-screen Netflix-style player built from the Video.js 10 skin components
  * (copied into components/videojs via the shadcn registry) plus our own overlays.
  */
-export function NetflixPlayer({ title, playback }: { title: Title; playback: Playback }) {
+/** Calls `onError` once when the player reports a fatal error (stream down, manifest 404…). */
+function FatalErrorWatcher({ onError }: { onError?: () => void }) {
+  const error = usePlayer((s) => s.error);
+  useEffect(() => {
+    if (error && onError) onError();
+  }, [error, onError]);
+  return null;
+}
+
+export function NetflixPlayer({
+  title,
+  playback,
+  onFatalError,
+  overlay,
+}: {
+  title: Title;
+  playback: Playback;
+  /** Another source can take over (WatchSources): called instead of leaving the error showing. */
+  onFatalError?: () => void;
+  /** Extra UI over the player, e.g. the "Server" menu. */
+  overlay?: React.ReactNode;
+}) {
   // Settings → Video quality (Auto / Data saver / Standard / High)
   const prefs = useSyncExternalStore(subscribePlayerPrefs, readPlayerPrefs, getServerPlayerPrefs);
   const quality = prefs.quality ?? "auto";
@@ -66,7 +85,6 @@ export function NetflixPlayer({ title, playback }: { title: Title; playback: Pla
   // so resume, volume, subtitles and quality are right from the first frame.
   const ready = useSyncExternalStore(subscribeUserData, isUserDataReady, () => false);
 
-  const account = useSyncExternalStore(subscribeAccount, getAccount, getServerAccount);
 
   if (!ready) {
     return (
@@ -76,28 +94,8 @@ export function NetflixPlayer({ title, playback }: { title: Title; playback: Pla
     );
   }
 
-  // Payments on and no paid time left: ask for a plan instead of playing.
-  // (The demo streams are public; a real catalog must also protect its video URLs server side.)
-  if (account.billing && !account.plan) {
-    return (
-      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
-        <h1 className="text-2xl font-bold sm:text-3xl">Choose a plan to watch {title.title}</h1>
-        <p className="max-w-md text-white/70">
-          {account.pendingPayment
-            ? "Your payment is still being confirmed. Check its status on the Account page."
-            : "Pay for a month with Safepay — Basic, Standard or Premium."}
-        </p>
-        <div className="flex gap-3">
-          <Link href="/account" className="rounded-md bg-primary px-5 py-2.5 font-semibold text-primary-foreground hover:bg-primary/85">
-            See plans
-          </Link>
-          <Link href={`/title/${title.id}`} className="rounded-md bg-white/15 px-5 py-2.5 font-semibold hover:bg-white/25">
-            Back
-          </Link>
-        </div>
-      </div>
-    );
-  }
+  // Paid access is checked by the watch page on the server (getWatchAccess) before this player
+  // is rendered, so anyone who gets here may watch.
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
@@ -145,6 +143,8 @@ export function NetflixPlayer({ title, playback }: { title: Title; playback: Pla
             <VideoStatusIndicators />
             <PlayerPreferences />
             <DevProbe />
+            <FatalErrorWatcher onError={onFatalError} />
+            {overlay}
           </Container>
         </VideoPlayer>
       </PlayerInfoProvider>

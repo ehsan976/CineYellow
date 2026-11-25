@@ -4,7 +4,7 @@ import type { Title, Trailer, WatchProviders } from "@/lib/types";
 import { useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight, Play, X } from "lucide-react";
+import { ArrowUpRight, X } from "lucide-react";
 
 import { metaLine, typeLabels } from "@/lib/titles";
 import { getKnownTitle, useTitleDetails } from "@/lib/stores/title-store";
@@ -14,7 +14,7 @@ import { ListButton } from "@/components/common/list-button";
 import { TrailerButton } from "@/components/title/trailer-button";
 import { WhereToWatch } from "@/components/title/where-to-watch";
 import { Details, Episodes } from "@/components/title/title-sections";
-import { useWatchTarget } from "@/hooks/use-watch-target";
+import { PlayButton } from "@/components/common/play-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +55,7 @@ export function TitleDialog({
             similar={details?.similar}
             trailer={details?.trailer}
             providers={details?.watchProviders ?? null}
+            available={details?.available}
             loading={details === undefined}
           />
         ) : details === null ? (
@@ -80,15 +81,11 @@ export function TitleDialog({
 }
 
 /** Play / Resume: closes the popup and opens the player. */
-function PlayLink({ title }: { title: Title }) {
-  const target = useWatchTarget(title);
+function PlayLink({ title, available }: { title: Title; available?: boolean }) {
+  // "Where to Watch" (not on CineYellow) also closes the popup: it opens the title page.
   return (
     <DialogClose asChild>
-      <Button asChild size="lg" className="h-10 rounded-full px-6 font-semibold">
-        <Link href={target.href}>
-          <Play className="fill-current" /> {target.label}
-        </Link>
-      </Button>
+      <PlayButton title={title} available={available} className="h-10 px-6" />
     </DialogClose>
   );
 }
@@ -98,12 +95,15 @@ function TitleDetails({
   similar,
   trailer,
   providers,
+  available,
   loading,
 }: {
   title: Title;
   similar?: Title[];
   trailer?: Trailer | null;
   providers: WatchProviders | null;
+  /** Has a video on CineYellow; undefined while details load. */
+  available?: boolean;
   loading: boolean;
 }) {
   const rootRef = useRef(null);
@@ -148,7 +148,7 @@ function TitleDetails({
             {title.title}
           </DialogTitle>
           <div className="mt-4 flex items-center gap-3">
-            <PlayLink title={title} />
+            <PlayLink title={title} available={available} />
             <TrailerButton trailer={trailer} titleName={title.title} size="default" className="h-10 px-4" />
             <ListButton titleId={title.id} name={title.title} size="lg" />
             <DialogClose asChild>

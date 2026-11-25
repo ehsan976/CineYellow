@@ -11,9 +11,13 @@ import { db } from "@/db";
 import { myList, profile, userSettings, watchHistory } from "@/db/schema";
 import { auth } from "@/lib/auth/server";
 import { UnauthorizedError, requireUser } from "@/lib/server/dal";
-import { cleanPlayerPrefs, cleanProfilePatch, isPlanId, isTitleIdList } from "@/lib/user-data";
+import { cleanPlayerPrefs, cleanProfilePatch, isPlanId, isTitleIdList, titleIdsOnly } from "@/lib/user-data";
+import { isTitleId } from "@/lib/titles";
 
 export type ActionResult = { ok: boolean; error?: string };
+
+/** Most titles one profile's My List can hold. */
+const MAX_LIST = 500;
 
 const isId = (v: unknown): v is string => typeof v === "string" && v.length > 0 && v.length <= 128;
 
@@ -34,7 +38,7 @@ const ownProfiles = (userId: string) => db.select({ id: profile.id }).from(profi
 /** Save one title to a profile's list (no-op if it isn't the user's profile or already saved). */
 export async function addToListAction(profileId: string, titleId: string) {
   return attempt(async () => {
-    if (!isId(profileId) || !isTitleIdList([titleId])) throw new Error("Invalid input");
+    if (!isId(profileId) || !isTitleId(titleId)) throw new Error("Invalid input");
     const user = await requireUser();
     await db
       .insert(myList)
@@ -42,7 +46,14 @@ export async function addToListAction(profileId: string, titleId: string) {
         db
           .select({ profileId: profile.id, titleId: sql<string>`${titleId}`.as("title_id"), addedAt: sql<Date>`now()`.as("added_at") })
           .from(profile)
-          .where(and(eq(profile.id, profileId), eq(profile.userId, user.id)))
+          .where(
+            and(
+              eq(profile.id, profileId),
+              eq(profile.userId, user.id),
+              // Same cap as a whole-list save (setMyListAction): at most MAX_LIST titles per profile.
+              sql`(select count(*) from ${myList} where ${myList.profileId} = ${profileId}) < ${MAX_LIST}`
+            )
+          )
       )
       .onConflictDoUpdate({ target: [myList.profileId, myList.titleId], set: { addedAt: sql`now()` } });
   });
@@ -69,7 +80,8 @@ export async function setMyListAction(profileId: string, titleIds: string[]) {
       .where(and(eq(profile.id, profileId), eq(profile.userId, user.id)))
       .limit(1);
     if (!owned) throw new UnauthorizedError();
-    const unique = [...new Set(titleIds)];
+    // Ids from the old mock catalog (one-time localStorage import) are dropped, not saved.
+    const unique = titleIdsOnly(titleIds).slice(0, MAX_LIST);
     const now = Date.now();
     await db.transaction(async (tx) => {
       await tx.delete(myList).where(eq(myList.profileId, profileId));

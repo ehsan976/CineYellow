@@ -133,6 +133,28 @@ export function checkSubtitles(raw: unknown): CheckedSubtitles {
   return { ok: true, tracks };
 }
 
+/**
+ * The video_provider id for a checked link (same hosts as the registry seeded in migration 0011).
+ * Every HLS stream is "own-hls"; embeds go by host. null when no provider serves it.
+ */
+export function providerIdFor(kind: VideoKind, url: string): string | null {
+  if (kind === "hls") return "own-hls";
+  let host: string;
+  try {
+    host = new URL(url).hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+  const on = (...domains: string[]) => domains.some((d) => host === d || host.endsWith(`.${d}`));
+  if (on("mediadelivery.net")) return "bunny";
+  if (on("videodelivery.net", "cloudflarestream.com")) return "cloudflare";
+  if (on("mux.com")) return "mux";
+  if (on("youtube.com", "youtube-nocookie.com", "youtu.be")) return "youtube";
+  if (on("vimeo.com")) return "vimeo";
+  if (on("dailymotion.com", "dai.ly")) return "dailymotion";
+  return null;
+}
+
 /** For links stored before a rule changed: is this still an allowed embed URL? */
 export function isAllowedEmbedUrl(url: string): boolean {
   const checked = checkVideoUrl(url, "embed");

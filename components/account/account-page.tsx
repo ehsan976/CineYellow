@@ -112,7 +112,15 @@ export function AccountPage() {
           description={account.planInfo ? `${account.planInfo.name} · ${account.planInfo.price}/month` : "No plan yet — choose one to start watching."}
         >
           {account.billing ? (
-            <AccessRow />
+            <>
+              <AccessRow />
+              {account.checkoutPaused && (
+                <p className="pb-3 text-sm text-muted-foreground">
+                  Plans open as soon as the first movies and shows are streaming on CineYellow. Until then you can browse
+                  everything and see where each title is streaming.
+                </p>
+              )}
+            </>
           ) : (
             <p className="pb-3 text-sm text-muted-foreground">
               Demo mode: plans switch for free. Add your Safepay keys to <code>.env</code> to take real payments.
@@ -148,7 +156,7 @@ export function AccountPage() {
                   <Button
                     size="sm"
                     variant={current ? "secondary" : "default"}
-                    disabled={current && !account.billing}
+                    disabled={(current && !account.billing) || (account.billing && account.checkoutPaused)}
                     className="mt-4"
                     onClick={() => {
                       if (account.billing) return setPayPlan(key as PlanId);
@@ -156,7 +164,9 @@ export function AccountPage() {
                       toast.success(`Plan changed to ${plan.name}`);
                     }}
                   >
-                    {!account.billing
+                    {account.billing && account.checkoutPaused
+                      ? "Coming soon"
+                      : !account.billing
                       ? current
                         ? "Your plan"
                         : `Switch to ${plan.name}`

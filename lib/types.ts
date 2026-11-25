@@ -55,6 +55,11 @@ export interface TitleDetails {
   watchProviders: WatchProviders | null;
   /** Episodes per season (index 0 = season 1), for shows; [] for movies. */
   seasonEpisodeCounts: number[];
+  /**
+   * Has at least one video on CineYellow. Not part of the TMDB data (that's cached for days):
+   * the title page and /api/catalog/title add it from getAvailableTitleIds().
+   */
+  available?: boolean;
 }
 
 export interface WatchProvider {
@@ -124,12 +129,19 @@ export interface Trailer {
 }
 
 /**
- * Where a title or episode's video comes from (added by an admin, table title_video):
+ * Where a title or episode's video comes from (table video_source, via lib/server/title-videos.ts):
  * "hls" plays in the site's own player, "embed" shows the host's player in an iframe.
  */
 export interface VideoSource {
+  /** video_source.id */
+  id: string;
   kind: "hls" | "embed";
   url: string;
+  /** Admin's name for it ("Hindi dub", "1080p"); "" when none. */
+  label: string;
+  providerId: string;
+  /** "YouTube", "Own HLS stream"… */
+  providerName: string;
   /** Seconds; null = no "Skip Intro" button. */
   introStart: number | null;
   introEnd: number | null;
@@ -137,6 +149,20 @@ export interface VideoSource {
   creditsAt: number | null;
   /** WebVTT subtitle files (HLS videos only; embeds use their host's captions). */
   subtitles: SubtitleTrack[];
+}
+
+/**
+ * One playable choice on the watch page, in ranked order: an HLS source carries its own Playback
+ * for the site player; an embed carries the host's player URL.
+ */
+export interface WatchOption {
+  id: string;
+  kind: "hls" | "embed";
+  /** Shown in the "Server" menu, e.g. "Server 1 · YouTube" or the admin's label. */
+  name: string;
+  providerId: string;
+  playback?: Playback;
+  embedUrl?: string;
 }
 
 /** One subtitle file for a video. */
@@ -194,6 +220,8 @@ export interface Row {
 export interface FeaturedItem {
   title: Title;
   tagline: string;
+  /** Has a video on CineYellow (else the hero offers "Where to Watch"). */
+  available: boolean;
 }
 
 export interface ContinueItem {
@@ -308,6 +336,8 @@ export interface Account {
   notifications: { newEpisodes: boolean; recommendations: boolean; emailUpdates: boolean };
   /** True when Safepay is set up: plans must be paid for. */
   billing: boolean;
+  /** New payments are paused: the site has no licensed video yet (lib/payments/service.ts). */
+  checkoutPaused: boolean;
   /** Paid time that hasn't run out yet (billing on). */
   access: AccessInfo | null;
   /** Most recent unconfirmed payment, if any. */

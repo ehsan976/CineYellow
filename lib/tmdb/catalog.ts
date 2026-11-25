@@ -9,6 +9,7 @@ import { setCacheLife } from "@/lib/tmdb/cache";
 import { mapLimit, tmdbGet } from "@/lib/tmdb/client";
 import { tmdb } from "@/lib/tmdb/config";
 import {
+  ANIME_LANGUAGES,
   dedupeTitles,
   genreLabel,
   isAnime,
@@ -116,12 +117,25 @@ export async function getTitlesByIds(ids: string[]): Promise<Record<string, Titl
 
 // ---------- Episodes ----------
 
+/**
+ * One season from TMDB, without episodes that haven't aired yet (an episode with an air date in
+ * the future can't be watched; ones with no date are kept). A season still airing is cached for
+ * "hours", so the next episode shows up the day it airs; finished seasons for "days".
+ * (The date is read here, inside the cache, where Cache Components allows it.)
+ */
 async function getSeason(tvId: number, season: number): Promise<TmdbSeason | null> {
   "use cache";
   cacheTag(`tmdb:title:tv-${tvId}`);
   const res = await tmdbGet<TmdbSeason>(`/tv/${tvId}/season/${season}`);
-  setCacheLife(res.ok || res.status === 404 ? "days" : "minutes");
-  return res.ok ? res.data : null;
+  if (!res.ok) {
+    setCacheLife(res.status === 404 ? "days" : "minutes");
+    return null;
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  const all = res.data.episodes ?? [];
+  const aired = all.filter((ep) => !ep.air_date || ep.air_date <= today);
+  setCacheLife(aired.length < all.length ? "hours" : "days");
+  return { ...res.data, episodes: aired };
 }
 
 /** Episodes of one season ([] for movies, unknown seasons or when TMDB is unavailable). */
@@ -134,8 +148,14 @@ export async function getEpisodes(title: Title, season: number): Promise<Episode
 
 // ---------- Browse (Movies / Series / Anime) ----------
 
-/** Anime genres: one key, the matching TV and movie genre ids. */
-const ANIME_GENRES: { value: string; label: string; tv?: number; movie?: number }[] = [
+/**
+ * Anime filters: genres (one key, the matching TV and movie genre ids) and, first, the country of
+ * origin by original language (`lang`): Japanese anime, Korean animation, Chinese donghua.
+ */
+const ANIME_GENRES: { value: string; label: string; tv?: number; movie?: number; lang?: string }[] = [
+  { value: "japanese", label: "Japanese", tv: ANIMATION, movie: ANIMATION, lang: "ja" },
+  { value: "korean", label: "Korean", tv: ANIMATION, movie: ANIMATION, lang: "ko" },
+  { value: "chinese", label: "Chinese (donghua)", tv: ANIMATION, movie: ANIMATION, lang: "zh|cn" },
   { value: "action", label: "Action", tv: 10759, movie: 28 },
   { value: "adventure", label: "Adventure", tv: 10759, movie: 12 },
   { value: "comedy", label: "Comedy", tv: 35, movie: 35 },
@@ -213,8 +233,10 @@ export async function discoverTitles(
       jobs.push(
         run(media, {
           ...sortParams(media, sort, today, true),
-          with_genres: id ? `${ANIMATION},${id}` : String(ANIMATION),
-          with_original_language: "ja",
+          // A country filter has the animation genre as its "genre" (no second genre needed).
+          with_genres: id && id !== ANIMATION ? `${ANIMATION},${id}` : String(ANIMATION),
+          // TMDB reads "|" as OR: by default every anime language.
+          with_original_language: g?.lang ?? ANIME_LANGUAGES.join("|"),
         })
       );
     }

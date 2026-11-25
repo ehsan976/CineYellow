@@ -10,11 +10,19 @@ export function useWatchHistory() {
   return useSyncExternalStore(subscribeHistory, getHistory, getServerHistory);
 }
 
+export interface WatchTarget {
+  href: string;
+  /** "Play" or "Resume S1:E3". */
+  label: string;
+  /** True when continuing from the viewer's history. */
+  resume: boolean;
+}
+
 /**
  * Where "Play" should go for a title: resume the last episode/position if there is one,
  * otherwise start at the beginning (S1:E1 for series).
  */
-export function useWatchTarget(title) {
+export function useWatchTarget(title): WatchTarget {
   const history = useWatchHistory();
   const last = recentByTitle(history).find((entry) => entry.titleId === title.id);
 

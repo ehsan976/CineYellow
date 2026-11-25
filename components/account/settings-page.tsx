@@ -27,12 +27,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 
 const speeds = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
-// Language codes as streams report them (HLS / BCP 47).
-const audioLanguages = { default: "Original audio", hi: "Hindi", en: "English", es: "Spanish", fr: "French", de: "German", it: "Italian", pt: "Portuguese" };
+// Language codes as streams report them (HLS / BCP 47). The player matches them to tracks with
+// sameLanguage() (lib/languages.ts), so "ur" here also matches an admin subtitle stored as "urd".
+const audioLanguages = {
+  default: "Original audio",
+  hi: "Hindi",
+  ur: "Urdu",
+  en: "English",
+  ja: "Japanese",
+  ko: "Korean",
+  zh: "Chinese",
+  ta: "Tamil",
+  te: "Telugu",
+  es: "Spanish",
+  fr: "French",
+  de: "German",
+  it: "Italian",
+  pt: "Portuguese",
+};
 const subtitleLanguages = {
   off: "Off",
   en: "English",
   hi: "Hindi",
+  ur: "Urdu",
   ar: "Arabic",
   es: "Spanish",
   fr: "French",

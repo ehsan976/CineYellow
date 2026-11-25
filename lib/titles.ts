@@ -28,5 +28,13 @@ export const isTitleId = (id: unknown): id is string => parseTitleId(id) !== nul
 
 export const makeTitleId = (media: TmdbMedia, tmdbId: number | string) => `${media}-${tmdbId}`;
 
+/**
+ * Ratings a Kids profile may play (the profile is labelled "7+"). Titles rated 13+ and up, and
+ * titles with no known rating, are blocked there: for children, unknown counts as not suitable.
+ * Ratings are our labels from lib/tmdb/map.ts (certifications for the site's region, then IN, US).
+ */
+export const KIDS_RATINGS = ["All", "7+"];
+export const isKidsFriendly = (rating: string | null | undefined) => KIDS_RATINGS.includes(rating ?? "");
+
 export const PLACEHOLDER_POSTER = "/placeholder-poster.svg";
 export const PLACEHOLDER_LANDSCAPE = "/placeholder-landscape.svg";

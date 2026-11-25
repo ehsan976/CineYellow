@@ -83,6 +83,8 @@ export interface TmdbVideo {
 
 export interface TmdbEpisode {
   episode_number: number;
+  /** "YYYY-MM-DD"; missing or null when TMDB doesn't know yet. */
+  air_date?: string | null;
   name?: string;
   overview?: string;
   runtime?: number | null;
