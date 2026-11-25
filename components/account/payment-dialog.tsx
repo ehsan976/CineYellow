@@ -2,10 +2,11 @@
 
 import type { PlanId } from "@/lib/types";
 import { useState } from "react";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Clock, Loader2, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { plans } from "@/lib/stores/account-store";
+import { useAccount } from "@/hooks/use-account";
 import { payWithSafepay } from "@/lib/stores/payment-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +22,7 @@ import {
 /** One month of a plan through Safepay's hosted checkout. */
 export function PaymentDialog({ plan, onClose }: { plan: PlanId | null; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
+  const { checkoutPaused } = useAccount();
   const info = plan ? plans[plan] : null;
 
   const close = () => {
@@ -53,20 +55,30 @@ export function PaymentDialog({ plan, onClose }: { plan: PlanId | null; onClose:
           <li>• {info?.screens} screen{info && info.screens > 1 ? "s" : ""} at a time</li>
         </ul>
 
-        <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm">
-          <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-          You&apos;ll pay on Safepay&apos;s secure checkout page. Your card or wallet details are never entered on CineYellow.
-        </p>
+        {checkoutPaused ? (
+          <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm">
+            <Clock className="mt-0.5 size-4 shrink-0 text-primary" />
+            Plans open as soon as the first movies and shows are streaming on CineYellow. Until then, browse titles and see
+            where each one is streaming.
+          </p>
+        ) : (
+          <p className="flex items-start gap-2 rounded-lg bg-muted/50 p-3 text-sm">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
+            You&apos;ll pay on Safepay&apos;s secure checkout page. Your card or wallet details are never entered on CineYellow.
+          </p>
+        )}
 
         <DialogFooter>
           <DialogClose asChild>
             <Button variant="ghost" disabled={busy}>
-              Cancel
+              {checkoutPaused ? "Close" : "Cancel"}
             </Button>
           </DialogClose>
-          <Button onClick={pay} disabled={busy || !plan}>
-            {busy && <Loader2 className="animate-spin" />} Continue to Safepay
-          </Button>
+          {!checkoutPaused && (
+            <Button onClick={pay} disabled={busy || !plan}>
+              {busy && <Loader2 className="animate-spin" />} Continue to Safepay
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -16,6 +16,10 @@ export const RATE_LIMITS = {
   anime: { limit: 20, windowMs: 60_000 },
   /** Up to 8 title lookups per request. */
   forYou: { limit: 30, windowMs: 60_000 },
+  /** The player saves every ~10 s, plus a beacon when the tab closes. */
+  progress: { limit: 60, windowMs: 60_000 },
+  /** Each checkout inserts a payment row and calls Safepay twice. Per user. */
+  checkout: { limit: 5, windowMs: 10 * 60_000 },
 } satisfies Record<string, Bucket>;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;
@@ -24,11 +28,18 @@ export type RateLimitName = keyof typeof RATE_LIMITS;
 const hits = new Map<string, number[]>();
 let lastSweep = 0;
 
-/** Client IP as seen by the proxy in front of the app; "unknown" when there is none (local dev). */
+/**
+ * Client IP as seen by the proxy in front of the app; "unknown" when there is none (local dev).
+ * Headers the host sets itself come first (a client can't forge them there). In X-Forwarded-For
+ * the *first* entries are whatever the client sent, so use the last one: the address the nearest
+ * proxy saw. Behind more than one proxy of your own, set x-real-ip at the edge instead.
+ */
 function clientIp(request: Request): string {
+  const trusted = request.headers.get("x-vercel-forwarded-for") ?? request.headers.get("x-real-ip");
+  if (trusted?.trim()) return trusted.split(",")[0].trim();
   const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0].trim();
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
+  if (forwarded) return forwarded.split(",").at(-1).trim();
+  return "unknown";
 }
 
 /** Drops keys whose newest hit has left every window (at most once a minute). */
@@ -42,13 +53,12 @@ function sweep(now: number) {
 }
 
 /**
- * Counts this request against `name` for the caller's IP.
- * Returns a 429 response to send back, or null when the request may go ahead.
+ * Counts one hit for `who` (an IP, a user id…) against `name`.
+ * `ok: false` means over the limit; `retryAfter` is then the seconds until a slot frees up.
+ * Call it only after reading request data (Cache Components allows Date.now() only then).
  */
-export function rateLimit(request: Request, name: RateLimitName): NextResponse | null {
-  // Read the request before the clock: Cache Components only allows Date.now() once the
-  // route has read request data.
-  const key = `${name}:${clientIp(request)}`;
+export function hitLimit(who: string, name: RateLimitName): { ok: boolean; retryAfter: number } {
+  const key = `${name}:${who}`;
   const { limit, windowMs } = RATE_LIMITS[name];
   const now = Date.now();
   sweep(now);
@@ -56,13 +66,23 @@ export function rateLimit(request: Request, name: RateLimitName): NextResponse |
   const times = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
   if (times.length >= limit) {
     hits.set(key, times);
-    const retryAfter = Math.max(1, Math.ceil((times[0] + windowMs - now) / 1000));
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429, headers: { "Retry-After": String(retryAfter), "Cache-Control": "no-store" } }
-    );
+    return { ok: false, retryAfter: Math.max(1, Math.ceil((times[0] + windowMs - now) / 1000)) };
   }
   times.push(now);
   hits.set(key, times);
-  return null;
+  return { ok: true, retryAfter: 0 };
+}
+
+/**
+ * Counts this request against `name` for the caller's IP.
+ * Returns a 429 response to send back, or null when the request may go ahead.
+ */
+export function rateLimit(request: Request, name: RateLimitName): NextResponse | null {
+  // clientIp reads the request first, so the clock in hitLimit is allowed.
+  const { ok, retryAfter } = hitLimit(clientIp(request), name);
+  if (ok) return null;
+  return NextResponse.json(
+    { error: "Too many requests" },
+    { status: 429, headers: { "Retry-After": String(retryAfter), "Cache-Control": "no-store" } }
+  );
 }

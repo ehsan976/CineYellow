@@ -1,0 +1,4 @@
+ALTER TABLE "video_source" DROP CONSTRAINT "video_source_episode_chk";--> statement-breakpoint
+ALTER TABLE "video_source" DROP CONSTRAINT "video_source_intro_chk";--> statement-breakpoint
+ALTER TABLE "video_source" ADD CONSTRAINT "video_source_episode_chk" CHECK (("video_source"."season" is null and "video_source"."episode" is null) or ("video_source"."season" is not null and "video_source"."episode" is not null and "video_source"."season" >= 1 and "video_source"."episode" >= 1));--> statement-breakpoint
+ALTER TABLE "video_source" ADD CONSTRAINT "video_source_intro_chk" CHECK (("video_source"."intro_start" is null and "video_source"."intro_end" is null) or ("video_source"."intro_start" is not null and "video_source"."intro_end" is not null and "video_source"."intro_start" >= 0 and "video_source"."intro_end" > "video_source"."intro_start"));

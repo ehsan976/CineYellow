@@ -24,12 +24,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // Any verified event about one of our trackers (succeeded, failed, refunded, reversed…): the
+  // real state is fetched from Safepay itself, so the event type only decides whether to look.
   const tracker = event.data?.tracker;
-  if (tracker && (event.type === "payment.succeeded" || event.type === "payment.failed")) {
+  if (tracker) {
     const [row] = await db.select().from(payment).where(eq(payment.providerTxnId, tracker)).limit(1);
     if (row) {
       try {
-        await syncPaymentWithGateway(row);
+        await syncPaymentWithGateway(row, { checkRefunds: true });
       } catch (error) {
         // Still acknowledge; the browser return or "Check status" will pick it up.
         console.error("Safepay webhook: status check failed", error);

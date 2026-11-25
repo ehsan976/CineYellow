@@ -1,6 +1,7 @@
 // Shapes and checks shared by the browser stores and the server (/api/me, server actions).
 // Nothing here touches the database, so client code can import it too.
 import type { Account, AvatarColor, HistoryEntry, PlanId, PlayerPrefs, Profile } from "@/lib/types";
+import { isTitleId } from "@/lib/titles";
 
 export const PLAN_IDS: PlanId[] = ["basic", "standard", "premium"];
 
@@ -62,21 +63,35 @@ export function cleanPlayerPrefs(prefs: unknown): PlayerPrefs {
   return out;
 }
 
+/** Longest video we accept a position for (about 11.5 days, far inside Postgres integer range). */
+const MAX_SECONDS = 1_000_000;
+
+/**
+ * A resume position from the browser. Bounded so a bad value can't overflow the integer columns
+ * (which used to fail the whole batch with a 500), and the key must belong to the title:
+ * "movie-550" or "tv-1399:s1e3".
+ */
 export function isHistoryEntry(v: unknown): v is HistoryEntry {
   return (
     isObject(v) &&
+    isTitleId(v.titleId) &&
     shortText(v.key, 128) &&
-    shortText(v.titleId, 64) &&
+    ((v.key as string) === v.titleId || (v.key as string).startsWith(`${v.titleId}:`)) &&
     intOrNull(v.season) &&
     intOrNull(v.episode) &&
     Number.isFinite(v.time) &&
     (v.time as number) >= 0 &&
+    (v.time as number) < MAX_SECONDS &&
     Number.isFinite(v.duration) &&
     (v.duration as number) > 0 &&
-    (v.duration as number) < 1_000_000
+    (v.duration as number) < MAX_SECONDS
   );
 }
 
+/** A list of id-like strings (up to 500). Pass it through titleIdsOnly() before saving. */
 export function isTitleIdList(v: unknown): v is string[] {
   return Array.isArray(v) && v.length <= 500 && v.every((id) => shortText(id, 64));
 }
+
+/** Keeps real TMDB title ids only (drops ids left over from the old mock catalog), de-duplicated. */
+export const titleIdsOnly = (ids: string[]) => [...new Set(ids.filter(isTitleId))];
