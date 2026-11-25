@@ -1,5 +1,6 @@
 // The site's own title registry (table "title"): only titles it manages (has videos or overrides).
 // TMDB stays the source of truth for metadata; this keeps ids and manual corrections.
+import "server-only";
 import { sql } from "drizzle-orm";
 
 import { db } from "@/db";

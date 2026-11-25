@@ -1,5 +1,6 @@
 // Fetches one show from Movie of the Night and returns its audio/subtitle languages for the
 // configured country. Never throws.
+import "server-only";
 import { motn } from "@/lib/motn/config";
 import { parseShowLanguages } from "@/lib/motn/parse";
 import { parseTitleId } from "@/lib/titles";

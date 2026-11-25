@@ -8,8 +8,10 @@ import { useApp } from "@/components/providers/app-context";
 import { CardBadges, listButtonReveal } from "@/components/home/landscape-card";
 import { ListButton } from "@/components/common/list-button";
 import { CarouselItem } from "@/components/ui/carousel";
+import { useRowWarm } from "@/components/home/row";
 
 export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
+  const warm = useRowWarm();
   const { openTitle } = useApp();
   const { title } = item;
 
@@ -35,6 +37,7 @@ export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
               alt=""
               fill
               sizes="(max-width: 640px) 40vw, (max-width: 1024px) 20vw, 12vw"
+              loading={warm ? "eager" : "lazy"}
               className="object-cover transition-transform duration-500 group-hover/card:scale-110"
             />
             <span className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />

@@ -1,6 +1,8 @@
 // TMDB (themoviedb.org): titles, posters, cast and episodes. Server only: the keys are never
 // sent to the browser. Without a key the catalog is empty and pages show an empty state.
 
+import "server-only";
+
 const env = (name: string) => process.env[name]?.trim() || "";
 
 export const tmdb = {

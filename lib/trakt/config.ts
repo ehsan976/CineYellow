@@ -3,6 +3,8 @@
 // Create an app at https://trakt.tv/oauth/applications with the redirect URI below.
 // Without both keys the feature is hidden.
 
+import "server-only";
+
 const env = (name: string) => process.env[name]?.trim() || "";
 
 export const trakt = {

@@ -4,6 +4,7 @@
 // In-memory sliding window: each server instance counts on its own, so with N instances a client
 // gets up to N × limit. It's a first line of defence that needs no Redis; put a shared store
 // (e.g. Upstash) behind the same function if the site ever runs on many instances.
+import "server-only";
 import { NextResponse } from "next/server";
 
 type Bucket = { limit: number; windowMs: number };

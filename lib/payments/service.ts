@@ -1,5 +1,6 @@
 // Payment rows and access periods. Server only. Gateways never decide the amount or the plan:
 // both are stored here when the payment starts, and every result is matched against that row.
+import "server-only";
 import type { PaymentProvider, PlanId } from "@/lib/types";
 import type { GatewayResult } from "@/lib/payments/safepay";
 import { inquireSafepay } from "@/lib/payments/safepay";
@@ -10,7 +11,7 @@ import { db } from "@/db";
 import { payment } from "@/db/schema";
 import { PLAN_DAYS } from "@/lib/payments/config";
 import { PLAN_PRICES_PKR } from "@/lib/user-data";
-import { getAvailableTitleIds } from "@/lib/server/title-videos";
+import { getAvailableTitleIds } from "@/lib/server/video-sources";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 

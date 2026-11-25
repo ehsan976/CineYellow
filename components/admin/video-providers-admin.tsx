@@ -1,6 +1,6 @@
 "use client";
 
-import type { ProviderRow } from "@/lib/server/title-videos";
+import type { ProviderRow } from "@/lib/server/video-sources";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";

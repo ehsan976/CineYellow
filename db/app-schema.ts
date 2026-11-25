@@ -232,7 +232,7 @@ export const catalogTitle = pgTable(
 /**
  * Video hosts the site may play from: only services whose videos the site has the rights to show
  * (its own HLS/CDN, and official players of licensed hosts). Admins can turn one off or reorder
- * them; code for each lives in lib/providers (P3). Seeded by migration 0010.
+ * them; health checks live in lib/video-providers. Seeded by migration 0010.
  */
 export const videoProvider = pgTable(
   "video_provider",

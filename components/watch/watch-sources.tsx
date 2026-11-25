@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 /**
- * Plays a title's sources in ranked order (lib/server/title-videos.ts getVideoSources).
+ * Plays a title's sources in ranked order (lib/server/video-sources.ts getVideoSources).
  * - Automatic: when the site player reports a fatal error, the next source takes over.
  *   (Embeds run inside the host's iframe, which doesn't report errors to the page; switch those
  *   by hand.)
@@ -115,8 +115,8 @@ function ServerMenu({
       >
         <Server className="size-4" /> <span className="max-w-40 truncate">{options[index].name}</span>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="z-[70] w-64">
-        <DropdownMenuLabel>Servers</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="z-[70] w-64 max-h-80 overflow-y-auto">
+        <DropdownMenuLabel>Servers ({options.length})</DropdownMenuLabel>
         {options.map((o, i) => (
           <DropdownMenuItem key={o.id} onSelect={() => onChoose(i)} className="gap-2">
             <Check className={i === index ? "size-4 text-primary" : "size-4 opacity-0"} />

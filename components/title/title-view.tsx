@@ -33,12 +33,14 @@ export function TitleView({ details, initialEpisodes }: { details: TitleDetails;
   return (
     <main className="overflow-x-hidden">
       {/* Hero */}
-      <section className="relative h-[72svh] max-h-[780px] min-h-[540px] w-full">
+      {/* At least 72% of the screen (540–780px), but it grows with long names / overviews, and the
+          top padding keeps the breadcrumb clear of the fixed navbar (it used to slide under it). */}
+      <section className="relative flex min-h-[clamp(540px,72svh,780px)] w-full flex-col">
         <Image src={title.backdrop} alt="" fill preload sizes="100vw" className="object-cover" />
         <div className="absolute inset-0 bg-linear-to-r from-background via-background/70 to-transparent" />
         <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-black/40" />
 
-        <div className="relative mx-auto flex h-full max-w-[1600px] flex-col justify-end px-4 pb-10 md:px-10 md:pb-14">
+        <div className="relative mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-end px-4 pt-24 pb-10 md:px-10 md:pb-14">
           <nav aria-label="Breadcrumb" className="mb-5 flex items-center gap-1.5 text-sm text-muted-foreground">
             <Link href="/" className="hover:text-primary">Home</Link>
             <ChevronRight className="size-3.5" />

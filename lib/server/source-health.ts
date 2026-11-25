@@ -10,12 +10,13 @@
 // - Detected audio languages / max height fill empty fields on locked sources and overwrite them
 //   on unlocked ones, so a manual value is never replaced.
 // - "advisory" (e.g. 403 from a signed URL) and "skipped" only record when it was checked.
+import "server-only";
 import { and, asc, eq, inArray, lt, ne, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { videoProvider, videoSource } from "@/db/schema";
-import { checkSourceHealth, type HealthMethod, type HealthResult } from "@/lib/providers/health";
-import { ALL_TITLE_VIDEOS_TAG, titleVideosTag } from "@/lib/server/title-videos";
+import { checkSourceHealth, type HealthMethod, type HealthResult } from "@/lib/video-providers/health";
+import { ALL_TITLE_VIDEOS_TAG, titleVideosTag } from "@/lib/server/video-sources";
 
 /** Failures in a row before an unlocked source is marked broken. */
 const FAILS_TO_BREAK = 3;

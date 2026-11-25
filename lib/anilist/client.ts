@@ -1,6 +1,8 @@
 // Thin AniList GraphQL wrapper (https://docs.anilist.co). Public API: no key needed.
 // Never throws: callers get { ok: false } and render nothing. Caching happens one level up,
 // in the "use cache" function of lib/anilist/anime.ts.
+import "server-only";
+
 export const ANILIST_API = "https://graphql.anilist.co";
 
 export type AnilistResult<T> = { ok: true; data: T } | { ok: false; status: number };

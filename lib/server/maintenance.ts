@@ -1,4 +1,5 @@
 // Housekeeping run by /api/cron/prune.
+import "server-only";
 import { sql } from "drizzle-orm";
 
 import { db } from "@/db";

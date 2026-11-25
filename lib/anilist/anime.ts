@@ -1,6 +1,7 @@
 // Anime details from AniList for a TMDB title (score, studios, source, season, next episode).
 // Cached per title: "hours" while a season is airing (so the next episode stays fresh), "days"
 // otherwise, "minutes" when AniList failed. Never throws.
+import "server-only";
 import type { AnimeInfo } from "@/lib/types";
 import { cacheTag } from "next/cache";
 
