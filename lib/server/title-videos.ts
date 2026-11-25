@@ -327,7 +327,9 @@ export async function listProviders(): Promise<ProviderRow[]> {
       enabled: videoProvider.enabled,
       priority: videoProvider.priority,
       hosts: videoProvider.hosts,
-      sources: sql<number>`(select count(*)::int from ${videoSource} where ${videoSource.providerId} = ${videoProvider.id})`,
+      // Fully qualified on purpose: inside a select, Drizzle prints columns without their table,
+      // and a bare "id" here would mean video_source.id (uuid) instead of the provider's id.
+      sources: sql<number>`(select count(*)::int from "video_source" vs where vs."provider_id" = "video_provider"."id")`,
     })
     .from(videoProvider)
     .orderBy(asc(videoProvider.priority), asc(videoProvider.name));
