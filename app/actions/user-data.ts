@@ -51,7 +51,8 @@ export async function addToListAction(profileId: string, titleId: string) {
               eq(profile.id, profileId),
               eq(profile.userId, user.id),
               // Same cap as a whole-list save (setMyListAction): at most MAX_LIST titles per profile.
-              sql`(select count(*) from ${myList} where ${myList.profileId} = ${profileId}) < ${MAX_LIST}`
+              // Table names spelled out: Drizzle can print columns here without their table.
+              sql`(select count(*) from "my_list" ml where ml."profile_id" = ${profileId}) < ${MAX_LIST}`
             )
           )
       )
