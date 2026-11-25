@@ -1,7 +1,6 @@
 "use client";
 
 import type { RowItem } from "@/lib/types";
-import Image from "next/image";
 import { Play } from "lucide-react";
 
 import { titleSizeClass } from "@/lib/ui";
@@ -9,6 +8,8 @@ import { useApp } from "@/components/providers/app-context";
 import { ListButton } from "@/components/common/list-button";
 import { Badge } from "@/components/ui/badge";
 import { CarouselItem } from "@/components/ui/carousel";
+import { CardImage } from "@/components/common/card-image";
+import { PLACEHOLDER_LANDSCAPE } from "@/lib/titles";
 import { useRowWarm } from "@/components/home/row";
 
 export function CardBadges({ badge, watchNow, compact = false }: { badge?: string; watchNow?: boolean; compact?: boolean }) {
@@ -42,8 +43,9 @@ export function LandscapeCard({ item }: { item: RowItem }) {
           aria-label={`${title.title} — details`}
           className="absolute inset-0 block text-left"
         >
-          <Image
+          <CardImage
             src={title.image}
+            fallback={PLACEHOLDER_LANDSCAPE}
             alt=""
             fill
             sizes="(max-width: 640px) 72vw, (max-width: 1024px) 33vw, 20vw"
