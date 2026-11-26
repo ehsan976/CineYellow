@@ -31,6 +31,7 @@ import { PlayerInfoProvider } from "@/components/player/player-context";
 import { PlayerPreferences } from "@/components/player/preferences";
 import { ResumeManager } from "@/components/player/resume-manager";
 import { SkipIntroButton } from "@/components/player/skip-intro-button";
+import { pauseVideosWhenHidden } from "@/hooks/use-stop-when-hidden";
 
 // Expose the store for debugging/tests: always in development, and in production only
 // when localStorage["cineyellow:debug"] === "1".
@@ -98,7 +99,9 @@ export function NetflixPlayer({
   // is rendered, so anyone who gets here may watch.
 
   return (
-    <div className="fixed inset-0 z-50 bg-black">
+    // Back/Forward hides this page instead of unmounting it; pause so its sound doesn't keep
+    // playing over the next page (hooks/use-stop-when-hidden.ts).
+    <div ref={pauseVideosWhenHidden} className="fixed inset-0 z-50 bg-black">
       <PlayerInfoProvider title={title} playback={playback}>
         <VideoPlayer title={title.title} poster={playback.poster}>
           <Container

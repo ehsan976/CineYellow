@@ -10,6 +10,7 @@ import { updatePlayerPrefs } from "@/lib/stores/player-prefs-store";
 import { getProgress, saveProgress } from "@/lib/stores/watch-history-store";
 import { isUserDataReady, subscribeUserData } from "@/lib/stores/user-data-store";
 import { usePlayerPrefs } from "@/hooks/use-account";
+import { useFrameStopsWhenHidden } from "@/hooks/use-stop-when-hidden";
 
 /** Save the embed's position at most this often (seconds of playback). */
 const SAVE_EVERY = 10;
@@ -130,17 +131,22 @@ export function EmbedWatch({
   // The URL (with the resume point) is built in the browser once this profile's history has
   // loaded, like the site player (the server never knows the position or the page origin).
   const ready = useSyncExternalStore(subscribeUserData, isUserDataReady, () => false);
+  // Back/Forward keeps this page hidden instead of unmounting it: the frame is blanked when
+  // hidden (so the movie's sound stops) and a fresh one loads when it's shown again.
+  const { attach: stopFrameWhenHidden, generation } = useFrameStopsWhenHidden(frame);
   const src = useMemo(() => {
     if (!ready) return null;
     const saved = getProgress(playback.key);
     const resumeAt = saved && saved.time >= MIN_RESUME && saved.duration - saved.time > 60 ? Math.floor(saved.time) : 0;
     return withPlayerApi(url, providerId, resumeAt);
-    // Only when the source or episode changes (not on every history save), so it never reloads.
-  }, [ready, url, providerId, playback.key]);
+    // Only when the source or episode changes, or the page is shown again (then it resumes from
+    // the latest save) — not on every history save, so it never reloads mid-play.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, url, providerId, playback.key, generation]);
   // Off unless the viewer turned it on: many servers won't play inside a sandbox.
   const adBlock = usePlayerPrefs().adBlock === true;
   // A sandbox change only applies to a fresh frame, so switching reloads the player.
-  const frameKey = src && `${src}|${adBlock ? "sandboxed" : "open"}`;
+  const frameKey = src && `${src}|${adBlock ? "sandboxed" : "open"}|${generation}`;
   useEmbedProgress(frame, providerId, playback, title, frameKey);
 
   const toggleAdBlock = () => {
@@ -194,7 +200,7 @@ export function EmbedWatch({
         // of an upright phone with its artwork cropped. Fullscreen still fills the device.
         <div className="flex min-h-0 flex-1 items-center justify-center">
           <iframe
-            ref={frame}
+            ref={stopFrameWhenHidden}
             key={frameKey}
             src={src}
             sandbox={adBlock ? AD_BLOCK_SANDBOX : undefined}
