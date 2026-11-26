@@ -12,7 +12,7 @@ import { useApp } from "@/components/providers/app-context";
 import { Logo } from "@/components/layout/logo";
 import { NotificationsMenu } from "@/components/layout/notifications-menu";
 import { ProfileMenu } from "@/components/layout/profile-menu";
-import { SearchBox, SearchBoxFallback } from "@/components/layout/search-box";
+import { NetflixSearch } from "@/components/layout/netflix-search";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 
@@ -92,14 +92,16 @@ export function Navbar({ notifications = [] }: { notifications?: AppNotification
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <Suspense fallback={<SearchBoxFallback className="hidden lg:block" inputClassName="h-9 w-64" />}>
-            <SearchBox className="hidden lg:block" inputClassName="h-9 w-64" />
+          {/* Phones search from the tab bar's Search page instead. */}
+          <Suspense
+            fallback={
+              <span className="hidden size-9 items-center justify-center md:flex" aria-hidden>
+                <Search className="size-5" />
+              </span>
+            }
+          >
+            <NetflixSearch className="hidden md:flex" />
           </Suspense>
-          <Button variant="ghost" size="icon" className="hidden md:inline-flex lg:hidden" aria-label="Search" asChild>
-            <Link href="/search">
-              <Search />
-            </Link>
-          </Button>
           {!hydrated ? (
             // Sign-in state is only known in the browser; hold the space to avoid a jump.
             <span className="size-8 rounded-full bg-muted" aria-hidden />
