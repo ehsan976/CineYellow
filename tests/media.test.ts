@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { aniskipTarget } from "@/lib/anilist/aniskip";
 import { sameLanguage } from "@/lib/languages";
 import { oembedUrl, parseHlsManifest } from "@/lib/video-providers/health";
-import { isKidsFriendly } from "@/lib/titles";
+import { isKidsFriendly, runtimeToSeconds } from "@/lib/titles";
 import { isAnime, toEpisodes } from "@/lib/tmdb/map";
 import { checkSubtitles, checkVideoUrl, providerIdFor } from "@/lib/videos";
 import { getEmbedWatchOptions } from "@/lib/player/embed-providers";
@@ -150,4 +150,18 @@ describe("My List release reminders", () => {
   });
   it("each new episode gets its own read key", () =>
     expect(releaseNotice(show("2026-11-24", null), today)?.readKey).not.toBe(releaseNotice(show(null, "2026-11-29"), today)?.readKey));
+});
+
+describe("runtimeToSeconds (Continue Watching estimate for embeds)", () => {
+  it("reads movie and episode runtimes", () => {
+    expect(runtimeToSeconds("2h 14m")).toBe(8040);
+    expect(runtimeToSeconds("45m")).toBe(2700);
+    expect(runtimeToSeconds("1h 00m")).toBe(3600);
+  });
+  it("unknown → null", () => {
+    expect(runtimeToSeconds("")).toBeNull();
+    expect(runtimeToSeconds(null)).toBeNull();
+    expect(runtimeToSeconds("soon")).toBeNull();
+    expect(runtimeToSeconds("0m")).toBeNull();
+  });
 });

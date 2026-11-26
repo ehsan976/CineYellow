@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Shield, ShieldOff, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 
+import { runtimeToSeconds } from "@/lib/titles";
 import { updatePlayerPrefs } from "@/lib/stores/player-prefs-store";
 import { getProgress, saveProgress } from "@/lib/stores/watch-history-store";
 import { isUserDataReady, subscribeUserData } from "@/lib/stores/user-data-store";
@@ -45,6 +46,44 @@ function withPlayerApi(url: string, providerId: string, resumeAt: number): strin
   } catch {
     return url;
   }
+}
+
+/** Hosts whose player reports its position (useEmbedProgress); the others get an estimate. */
+const REPORTS_POSITION = new Set(["youtube", "vimeo"]);
+/** Watching time counted in steps of this many seconds. */
+const TICK = 15;
+/** Shows up in Continue Watching after this much time on the page. */
+const MIN_WATCHED = 60;
+/** Estimates stay below the 90% where /api/me/progress counts a title as finished (Trakt). */
+const MAX_ESTIMATE = 0.85;
+
+/**
+ * Continue Watching for hosts that don't say where playback is (VidRift, Bunny, Cloudflare…):
+ * time spent on this page while it's on screen counts as watched. After a minute the title is
+ * saved, then updated every 15 s, as an estimate (the bar can't know about pauses or seeks), kept
+ * below 85% so it's never marked finished. Length: the episode's or movie's runtime from TMDB,
+ * else 45 min (episode) / 2 h (movie). Stops when the page is hidden or left.
+ */
+function useEstimatedProgress(enabled: boolean, playback: Playback, title: Title) {
+  // Plain values, so a re-render with an equal `playback` object doesn't restart the count.
+  const { key, season, episode } = playback;
+  const runtimeText = season ? playback.current?.runtime : title.duration;
+  const titleId = title.id;
+  useEffect(() => {
+    if (!enabled) return;
+    const duration = runtimeToSeconds(runtimeText) ?? (season ? 45 * 60 : 120 * 60);
+    // Continue from an earlier visit's estimate (watching the rest of it).
+    const before = getProgress(key)?.time ?? 0;
+    let watched = 0;
+    const id = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      watched += TICK;
+      if (watched < MIN_WATCHED) return;
+      const time = Math.min(before + watched, Math.floor(duration * MAX_ESTIMATE));
+      saveProgress({ key, titleId, season, episode, time, duration });
+    }, TICK * 1000);
+    return () => clearInterval(id);
+  }, [enabled, key, titleId, season, episode, runtimeText]);
 }
 
 /**
@@ -148,6 +187,7 @@ export function EmbedWatch({
   // A sandbox change only applies to a fresh frame, so switching reloads the player.
   const frameKey = src && `${src}|${adBlock ? "sandboxed" : "open"}|${generation}`;
   useEmbedProgress(frame, providerId, playback, title, frameKey);
+  useEstimatedProgress(Boolean(frameKey) && !REPORTS_POSITION.has(providerId), playback, title);
 
   const toggleAdBlock = () => {
     updatePlayerPrefs({ adBlock: !adBlock });

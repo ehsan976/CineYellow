@@ -10,6 +10,14 @@ export function metaLine(t: Title): string {
   return t.seasons ? `${t.seasons} Season${t.seasons > 1 ? "s" : ""}` : "";
 }
 
+/** "2h 14m" / "45m" (formatRuntime, episode runtimes) → seconds; null when unknown. */
+export function runtimeToSeconds(text: string | null | undefined): number | null {
+  const m = /^\s*(?:(\d+)h)?\s*(?:(\d+)m)?\s*$/.exec(text ?? "");
+  if (!m || (!m[1] && !m[2])) return null;
+  const seconds = (Number(m[1] ?? 0) * 60 + Number(m[2] ?? 0)) * 60;
+  return seconds > 0 ? seconds : null;
+}
+
 export type TmdbMedia = "movie" | "tv";
 
 /** Our ids are "<media>-<TMDB id>", e.g. "movie-550" or "tv-1399". */
