@@ -14,6 +14,12 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// viewport-fit=cover lets the phone tab bar pad itself clear of the home indicator (safe-area insets).
+export const viewport = {
+  viewportFit: "cover",
+  themeColor: "#0b0b0e",
+};
+
 export const metadata = {
   title: {
     default: "CineYellow — Movies & Series",

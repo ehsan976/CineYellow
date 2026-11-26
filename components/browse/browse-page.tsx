@@ -96,32 +96,33 @@ export function BrowsePage({
 
   return (
     <div>
-      <header className="mb-6">
-        <h1 className="text-3xl font-black tracking-tight md:text-5xl">{heading}</h1>
+      <header className="mb-4 md:mb-6">
+        <h1 className="text-2xl font-black tracking-tight sm:text-3xl md:text-5xl">{heading}</h1>
         <span className="mt-3 block h-1 w-16 rounded-full bg-primary" />
         <p className="mt-3 max-w-2xl text-muted-foreground">{description}</p>
       </header>
 
-      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      <div className="mb-5 flex flex-col gap-3 md:mb-8 md:flex-row md:items-start md:justify-between md:gap-4">
         <ToggleGroup
           type="single"
           value={genre}
           onValueChange={(v) => v && setGenre(v)}
           aria-label="Filter by genre"
-          className="w-full flex-wrap md:w-auto"
+          // Phones: one swipeable line of chips, edge to edge. md and up: wrapped.
+          className="scrollbar-none -mx-4 w-[calc(100%+2rem)] flex-nowrap justify-start overflow-x-auto px-4 md:mx-0 md:w-auto md:flex-wrap md:overflow-visible md:px-0"
         >
           {[{ value: "all", label: "All" }, ...genres].map((g) => (
             <ToggleGroupItem
               key={g.value}
               value={g.value}
-              className="h-8 rounded-full border border-border px-3.5 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+              className="h-8 shrink-0 rounded-full border border-border px-3.5 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
             >
               {g.label}
             </ToggleGroupItem>
           ))}
         </ToggleGroup>
 
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 md:justify-start">
           <span className="text-sm text-muted-foreground">
             {total.toLocaleString("en-US")} title{total === 1 ? "" : "s"}
           </span>

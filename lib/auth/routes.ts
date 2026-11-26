@@ -1,9 +1,10 @@
 // Which pages need a signed-in user. Shared by proxy.ts (server) and AppProvider (client).
 
 /** Pages only for signed-out visitors — signed-in users are sent home. */
-export const SIGNED_OUT_PAGES = ["/welcome", "/login", "/signup"];
-/** Pages anyone can open. Everything else needs a session. */
-export const PUBLIC_PAGES = [...SIGNED_OUT_PAGES, "/help"];
+export const SIGNED_OUT_PAGES = ["/welcome", "/login", "/signup", "/forgot-password"];
+/** Pages anyone can open. Everything else needs a session. (/reset-password too: a signed-in
+ * user who opens the link from the email can still set a new password.) */
+export const PUBLIC_PAGES = [...SIGNED_OUT_PAGES, "/reset-password", "/help"];
 
 /** Pages only for users with the "admin" role (the admin API checks the role again itself). */
 export const ADMIN_PAGES = ["/admin"];

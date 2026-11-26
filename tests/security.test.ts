@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { safeNext } from "@/lib/auth/routes";
 import { isPrivateAddress } from "@/lib/server/safe-fetch";
-import { isHistoryEntry, titleIdsOnly } from "@/lib/user-data";
+import { cleanPlayerPrefs, isHistoryEntry, titleIdsOnly } from "@/lib/user-data";
 
 describe("safeNext (post-login redirect)", () => {
   it("keeps same-site paths", () => {
@@ -48,4 +48,12 @@ describe("watch history validation", () => {
   it("rejects a key that belongs to another title", () => expect(isHistoryEntry({ ...entry, key: "tv-1:s1e3" })).toBe(false));
   it("keeps only real title ids in My List, without duplicates", () =>
     expect(titleIdsOnly(["movie-550", "old-mock-id", "movie-550", "tv-1399"])).toEqual(["movie-550", "tv-1399"]));
+});
+
+describe("player preferences", () => {
+  it("keeps the ad blocker switch when it's a boolean", () => {
+    expect(cleanPlayerPrefs({ adBlock: false })).toEqual({ adBlock: false });
+    expect(cleanPlayerPrefs({ adBlock: true })).toEqual({ adBlock: true });
+  });
+  it("drops an ad blocker value that isn't a boolean", () => expect(cleanPlayerPrefs({ adBlock: "off" })).toEqual({}));
 });

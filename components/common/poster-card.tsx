@@ -35,11 +35,11 @@ export function PosterCard({ title, priority = false, asLink = false }: { title:
             alt=""
             fill
             loading={priority ? "eager" : undefined}
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
+            sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
             className="object-cover transition-transform duration-500 group-hover/card:scale-110"
           />
           <span className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent" />
-          <span className="absolute top-2 left-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-primary uppercase">
+          <span className="absolute top-1.5 left-1.5 rounded bg-black/70 px-1 py-0.5 text-[9px] font-semibold text-primary uppercase sm:top-2 sm:left-2 sm:px-1.5 sm:text-[10px]">
             {typeLabels[title.type]}
           </span>
           <span className="absolute top-1/2 left-1/2 flex size-12 -translate-x-1/2 -translate-y-1/2 scale-75 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 transition-all duration-300 group-hover/card:scale-100 group-hover/card:opacity-100">
@@ -47,10 +47,11 @@ export function PosterCard({ title, priority = false, asLink = false }: { title:
           </span>
         </span>
         {/* Under the poster, not on it: TMDB posters already show the name as artwork. */}
-        <span title={title.title} className="mt-2 block truncate text-sm font-semibold">
+        <span title={title.title} className="mt-1.5 block truncate text-xs font-semibold sm:mt-2 sm:text-sm">
           {title.title}
         </span>
-        <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+        {/* Phones show just the name under each poster; details are a tap away. */}
+        <span className="mt-0.5 hidden items-center gap-2 text-xs text-muted-foreground sm:flex">
           <span className="font-semibold text-primary">{title.match}%</span>
           {title.year > 0 && <span>{title.year}</span>}
           {metaLine(title) && (
@@ -60,7 +61,7 @@ export function PosterCard({ title, priority = false, asLink = false }: { title:
             </>
           )}
         </span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+        <span className="mt-0.5 hidden truncate text-xs text-muted-foreground sm:block">
           {title.genres.join(" · ")}
         </span>
       </Body>

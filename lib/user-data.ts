@@ -60,6 +60,7 @@ export function cleanPlayerPrefs(prefs: unknown): PlayerPrefs {
   if (shortText(prefs.audioLanguage, 16)) out.audioLanguage = prefs.audioLanguage as string;
   if (shortText(prefs.subtitleLanguage, 16)) out.subtitleLanguage = prefs.subtitleLanguage as string;
   if (["auto", "saver", "standard", "high"].includes(prefs.quality as string)) out.quality = prefs.quality as PlayerPrefs["quality"];
+  if (typeof prefs.adBlock === "boolean") out.adBlock = prefs.adBlock;
   return out;
 }
 

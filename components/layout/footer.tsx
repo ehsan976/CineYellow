@@ -14,9 +14,10 @@ const columns: [heading: string, links: FooterLink[]][] = [
 
 export function Footer() {
   return (
-    <footer className="mt-16 border-t border-border bg-black/40">
-      <div className="mx-auto max-w-[1600px] px-4 py-12 md:px-10">
-        <div className="grid gap-10 md:grid-cols-[1.5fr_repeat(4,1fr)]">
+    <footer className="mt-10 border-t border-border bg-black/40 md:mt-16">
+      <div className="mx-auto max-w-[1600px] px-4 py-6 md:px-10 md:py-12">
+        {/* Phones get the app treatment: the tab bar does the navigating, only the credits stay. */}
+        <div className="hidden gap-10 md:grid md:grid-cols-[1.5fr_repeat(4,1fr)]">
           <div className="space-y-3">
             <Logo />
             <p className="max-w-xs text-sm text-muted-foreground">
@@ -39,7 +40,12 @@ export function Footer() {
             </div>
           ))}
         </div>
-        <Separator className="my-8" />
+        <Separator className="my-8 hidden md:block" />
+        <nav aria-label="Footer" className="mb-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground md:hidden">
+          <Link href="/help" className="hover:text-foreground">Help Center</Link>
+          <Link href="/help#contact" className="hover:text-foreground">Contact Us</Link>
+          <Link href="/settings" className="hover:text-foreground">Settings</Link>
+        </nav>
         <p className="text-xs text-muted-foreground">© 2026 CineYellow. All rights reserved.</p>
         <p className="mt-2 text-xs text-muted-foreground">
           Title data and images from{" "}

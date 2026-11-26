@@ -1,13 +1,13 @@
 "use client";
 
 import type { RowItem } from "@/lib/types";
-import Image from "next/image";
 
 import { PLACEHOLDER_POSTER } from "@/lib/titles";
 import { useApp } from "@/components/providers/app-context";
 import { CardBadges, listButtonReveal } from "@/components/home/landscape-card";
 import { ListButton } from "@/components/common/list-button";
 import { CarouselItem } from "@/components/ui/carousel";
+import { CardImage } from "@/components/common/card-image";
 import { useRowWarm } from "@/components/home/row";
 
 export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
@@ -16,12 +16,12 @@ export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
   const { title } = item;
 
   return (
-    <CarouselItem className="basis-[62%] pl-2 sm:basis-[40%] md:basis-[30%] lg:basis-[22%] xl:basis-[18%]">
+    <CarouselItem className="basis-[44%] pl-2 sm:basis-[32%] md:basis-[30%] lg:basis-[22%] xl:basis-[18%]">
       <div className="group/card relative flex justify-end">
         {/* Giant hollow rank number sits behind the poster's left edge */}
         <span
           aria-hidden
-          className="text-outline pointer-events-none absolute bottom-0 left-0 text-[8.5rem] leading-[0.78] font-black tracking-[-0.08em] transition-all duration-300 select-none group-hover/card:[-webkit-text-stroke-color:var(--primary)] md:text-[10rem]"
+          className="text-outline pointer-events-none absolute bottom-0 left-0 text-[6.5rem] leading-[0.78] sm:text-[8.5rem] font-black tracking-[-0.08em] transition-all duration-300 select-none group-hover/card:[-webkit-text-stroke-color:var(--primary)] md:text-[10rem]"
         >
           {rank}
         </span>
@@ -32,11 +32,12 @@ export function Top10Card({ item, rank }: { item: RowItem; rank: number }) {
             aria-label={`Number ${rank}: ${title.title} — details`}
             className="absolute inset-0 block text-left"
           >
-            <Image
+            <CardImage
               src={title.poster}
+              fallback={PLACEHOLDER_POSTER}
               alt=""
               fill
-              sizes="(max-width: 640px) 40vw, (max-width: 1024px) 20vw, 12vw"
+              sizes="(max-width: 640px) 28vw, (max-width: 1024px) 20vw, 12vw"
               loading={warm ? "eager" : "lazy"}
               className="object-cover transition-transform duration-500 group-hover/card:scale-110"
             />

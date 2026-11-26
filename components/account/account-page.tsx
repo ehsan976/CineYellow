@@ -126,7 +126,8 @@ export function AccountPage() {
               Demo mode: plans switch for free. Add your Safepay keys to <code>.env</code> to take real payments.
             </p>
           )}
-          <div className="grid gap-3 py-3 sm:grid-cols-3">
+          {/* Three across only when the card itself is wide enough (it's half width on large screens). */}
+          <div className="grid gap-3 py-3 @lg:grid-cols-3">
             {Object.entries(plans).map(([key, plan]) => {
               const current = key === account.plan;
               return (
@@ -137,8 +138,8 @@ export function AccountPage() {
                     current ? "bg-primary/10 ring-primary" : "ring-foreground/10 hover:ring-foreground/25"
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold">{plan.name}</span>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate font-bold">{plan.name}</span>
                     {current && <Badge className="rounded-md">Current</Badge>}
                   </div>
                   <span className="mt-2 text-2xl font-black">
@@ -157,7 +158,7 @@ export function AccountPage() {
                     size="sm"
                     variant={current ? "secondary" : "default"}
                     disabled={(current && !account.billing) || (account.billing && account.checkoutPaused)}
-                    className="mt-4"
+                    className="mt-4 h-auto min-h-7 py-1 whitespace-normal"
                     onClick={() => {
                       if (account.billing) return setPayPlan(key as PlanId);
                       updateAccount({ plan: key as PlanId });
@@ -213,7 +214,7 @@ export function AccountPage() {
       <PaymentDialog plan={payPlan} onClose={() => setPayPlan(null)} />
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Delete your account?</DialogTitle>
             <DialogDescription>
@@ -335,7 +336,7 @@ function DevicesCard({ currentToken }: { currentToken?: string }) {
           <SettingRow
             key={s.id}
             label={
-              <span className="flex items-center gap-2">
+              <span className="flex flex-wrap items-center gap-2">
                 <Icon className="size-4 text-primary" /> {name}
                 {current && <Badge variant="outline" className="rounded-md text-[10px]">This device</Badge>}
               </span>
@@ -400,7 +401,7 @@ function ChangePasswordDialog({ open, onOpenChange }: { open: boolean; onOpenCha
 
   return (
     <Dialog open={open} onOpenChange={close}>
-      <DialogContent>
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Change password</DialogTitle>
           <DialogDescription>Other devices will be signed out.</DialogDescription>

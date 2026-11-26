@@ -4,7 +4,7 @@ import { SearchX } from "lucide-react";
 
 import { gridClass } from "@/lib/ui";
 import { PosterCard } from "@/components/common/poster-card";
-import { SearchBox } from "@/components/layout/search-box";
+import { NetflixSearch } from "@/components/layout/netflix-search";
 
 const popularSearches = ["Anime", "Thriller", "Comedy", "Romance", "Sci-Fi", "Horror", "Documentary", "Shah Rukh Khan"];
 
@@ -29,8 +29,8 @@ function PopularChips() {
 export function SearchResults({ q, results, topPicks }: { q: string; results: Title[]; topPicks: Title[] }) {
   return (
     <div>
-      {/* Phones and tablets get a big search box here (the navbar one is desktop only). */}
-      <SearchBox autoFocus className="mb-6 lg:hidden" inputClassName="h-11 text-base" />
+      {/* Phones get a big search box here (tablets and up use the one in the navbar). */}
+      <NetflixSearch alwaysOpen className="mb-6 md:hidden" />
 
       {!q ? (
         <>

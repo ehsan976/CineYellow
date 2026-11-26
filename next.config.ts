@@ -23,7 +23,11 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   images: {
-    // TMDB images never change for a given path, so cache the optimized copies for a month.
+    // Served straight from TMDB's CDN, not through Next's optimizer. TMDB already gives each image
+    // in the size we ask for (w300/w500/w780/w1280 in lib/tmdb/map.ts) from a warm global cache,
+    // while the optimizer had to fetch + resize every image on its first view (~1.5–2.5 s each:
+    // cards slid in blank) and counts against Vercel's image-optimization quota.
+    unoptimized: true,
     minimumCacheTTL: 2678400,
     remotePatterns: [
       // TMDB posters, backdrops and episode stills (lib/tmdb/map.ts).

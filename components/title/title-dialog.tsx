@@ -45,7 +45,8 @@ export function TitleDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="block max-h-[92svh] gap-0 overflow-y-auto p-0 sm:max-w-3xl"
+        // Phones: a full-screen sheet that slides up, like an app. sm and up: the centred popup.
+        className="block max-h-[92svh] gap-0 overflow-y-auto overscroll-contain p-0 sm:max-w-3xl max-sm:top-0 max-sm:left-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] max-sm:ring-0 max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom-8"
       >
         {title ? (
           // key resets tabs / season when "More Like This" switches title
@@ -130,7 +131,7 @@ function TitleDetails({
           <Button
             variant="ghost"
             size="icon"
-            className="absolute top-3 right-3 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-primary"
+            className="absolute top-[max(0.75rem,env(safe-area-inset-top))] right-3 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-primary"
           >
             <X />
             <span className="sr-only">Close</span>

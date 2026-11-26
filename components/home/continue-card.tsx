@@ -1,23 +1,51 @@
 "use client";
 
 import type { ContinueItem, HistoryEntry, Title } from "@/lib/types";
-import Image from "next/image";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { Play, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { watchHref } from "@/lib/player/playback";
-import { recentByTitle } from "@/lib/stores/watch-history-store";
+import { recentByTitle, removeFromContinueWatching } from "@/lib/stores/watch-history-store";
 import { useTitles } from "@/lib/stores/title-store";
 import { useWatchHistory } from "@/hooks/use-watch-target";
 import { Row } from "@/components/home/row";
 import { Card, CardContent } from "@/components/ui/card";
 import { CarouselItem } from "@/components/ui/carousel";
+import { CardImage } from "@/components/common/card-image";
+import { PLACEHOLDER_LANDSCAPE } from "@/lib/titles";
 import { useRowWarm } from "@/components/home/row";
 import { Progress } from "@/components/ui/progress";
 
 function minutesLeft(entry: HistoryEntry) {
   const left = Math.max(1, Math.round((entry.duration - entry.time) / 60));
   return left >= 60 ? `${Math.floor(left / 60)}h ${String(left % 60).padStart(2, "0")}m left` : `${left}m left`;
+}
+
+/**
+ * ✕ on a Continue Watching card: drops the title from the row (and its resume points), with Undo.
+ * A sibling of the card's link, not inside it, so it's a separate button for keyboards and screen
+ * readers. Always visible on touch screens; on hover/focus with a mouse.
+ */
+function RemoveButton({ title }: { title: Title }) {
+  return (
+    <button
+      type="button"
+      aria-label={`Remove ${title.title} from Continue Watching`}
+      title="Remove from Continue Watching"
+      onClick={() => {
+        const undo = removeFromContinueWatching(title.id);
+        if (!undo) return;
+        toast("Removed from Continue Watching", {
+          description: title.title,
+          action: { label: "Undo", onClick: undo },
+        });
+      }}
+      className="absolute top-2 right-2 z-10 flex size-8 items-center justify-center rounded-full border border-white/30 bg-black/60 text-white backdrop-blur transition hover:border-white hover:bg-black/80 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none pointer-fine:opacity-0 pointer-fine:group-hover/item:opacity-100"
+    >
+      <X className="size-4" />
+    </button>
+  );
 }
 
 /** "Continue Watching" from the viewer's real history. Hidden when there is nothing to resume. */
@@ -52,7 +80,8 @@ export function ContinueWatchingRow() {
 export function ContinueCard({ title, item }: { title: Title; item: ContinueItem }) {
   const warm = useRowWarm();
   return (
-    <CarouselItem className="basis-[60%] pl-3 sm:basis-[40%] md:basis-1/4 lg:basis-1/5 xl:basis-[16%]">
+    <CarouselItem className="group/item relative basis-[42%] pl-3 sm:basis-[30%] md:basis-1/4 lg:basis-1/5 xl:basis-[16%]">
+      <RemoveButton title={title} />
       <Link
         href={item.href}
         aria-label={`Continue ${title.title}, ${item.info}`}
@@ -60,8 +89,9 @@ export function ContinueCard({ title, item }: { title: Title; item: ContinueItem
       >
         <Card className="group/card gap-0 py-0 transition-all hover:ring-2 hover:ring-primary">
           <div className="relative aspect-4/3 overflow-hidden">
-            <Image
+            <CardImage
               src={title.image}
+              fallback={PLACEHOLDER_LANDSCAPE}
               alt=""
               fill
               sizes="(max-width: 640px) 60vw, 20vw"
@@ -75,7 +105,7 @@ export function ContinueCard({ title, item }: { title: Title; item: ContinueItem
           </div>
           <Progress value={item.progress} className="h-1 rounded-none" />
           <CardContent className="px-3 py-2.5">
-            <p className="truncate font-semibold">{title.title}</p>
+            <p className="truncate text-sm font-semibold md:text-base">{title.title}</p>
             <p className="text-xs text-muted-foreground">{item.info}</p>
           </CardContent>
         </Card>

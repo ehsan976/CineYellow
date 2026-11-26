@@ -86,7 +86,7 @@ export const faqs: Faq[] = [
   {
     category: "account",
     q: "How do I change my email or password?",
-    a: "Open Account → Membership. Use Change email to update it, or Change password to get a reset link.",
+    a: "Open Account → Membership. Use Change email to update it, or Change password to pick a new one. Forgot your password? Press \"Forgot password?\" on the Sign In page and we'll email you a reset link.",
   },
   {
     category: "account",

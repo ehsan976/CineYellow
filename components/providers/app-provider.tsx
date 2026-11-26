@@ -106,6 +106,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       <Toaster
         theme="dark"
         position="bottom-right"
+        // Phones: sit above the bottom tab bar (3.5rem + safe area), not behind it.
+        mobileOffset={{ bottom: "calc(4.25rem + env(safe-area-inset-bottom))" }}
         toastOptions={{ classNames: { toast: "cn-toast", icon: "text-primary" } }}
       />
     </AppContext.Provider>

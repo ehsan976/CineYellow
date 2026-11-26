@@ -1,6 +1,6 @@
 // Player preferences shared by the player (components/player/preferences.tsx) and /settings.
 // Stored per profile in Postgres (profile.player_prefs) via user-data-store; saves are debounced.
-// Shape: { volume, muted, rate, audioLanguage, subtitleLanguage ("off" | code), quality }.
+// Shape: { volume, muted, rate, audioLanguage, subtitleLanguage ("off" | code), quality, adBlock }.
 import type { PlayerPrefs, QualityPreference } from "@/lib/types";
 import { EMPTY, getActivePrefs, setActivePrefs, subscribeUserData } from "@/lib/stores/user-data-store";
 

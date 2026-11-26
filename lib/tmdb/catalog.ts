@@ -23,6 +23,7 @@ import {
   type GenreMap,
 } from "@/lib/tmdb/map";
 import { parseTitleId, type TmdbMedia } from "@/lib/titles";
+import type { EpisodeRef, ReleaseInfo } from "@/lib/releases";
 
 const ANIMATION = 16;
 const MAX_PAGE = 50;
@@ -99,6 +100,37 @@ export async function getTitleDetails(id: string): Promise<TitleDetails | null> 
     isAnime: isAnime((details.genres ?? []).map((g) => g.id), details),
     watchProviders: toWatchProviders(details, tmdb.region),
     seasonEpisodeCounts: ref.media === "tv" ? toSeasonEpisodeCounts(details) : [],
+  };
+}
+
+/**
+ * Release dates for the bell's My List reminders: a movie's release date, a show's newest and
+ * next episode. One plain TMDB call; cached for hours (getTitleDetails is cached for days, too
+ * long for weekly episodes). null when the id is bad or TMDB fails.
+ */
+export async function getReleaseInfo(id: string): Promise<ReleaseInfo | null> {
+  "use cache";
+  cacheTag(`tmdb:title:${id}`);
+  const ref = parseTitleId(id);
+  if (!ref) {
+    setCacheLife("days");
+    return null;
+  }
+  const res = await tmdbGet<TmdbDetails>(`/${ref.media}/${ref.tmdbId}`);
+  if (!res.ok) {
+    setCacheLife(res.status === 404 ? "days" : "minutes");
+    return null;
+  }
+  setCacheLife("hours");
+  const episode = (e: TmdbDetails["last_episode_to_air"]): EpisodeRef | null =>
+    e?.air_date && e.season_number && e.episode_number ? { season: e.season_number, episode: e.episode_number, airDate: e.air_date } : null;
+  const d = res.data;
+  return {
+    id,
+    media: ref.media,
+    releaseDate: ref.media === "movie" ? d.release_date || null : null,
+    lastEpisode: ref.media === "tv" ? episode(d.last_episode_to_air) : null,
+    nextEpisode: ref.media === "tv" ? episode(d.next_episode_to_air) : null,
   };
 }
 

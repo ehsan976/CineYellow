@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 
@@ -19,10 +19,10 @@ const arrow =
   "top-0 bottom-0 z-10 hidden h-auto w-10 rounded-none border-0 bg-black/60 text-foreground opacity-0 transition-opacity group-hover/row:opacity-100 hover:bg-black/80 hover:text-primary disabled:invisible md:flex [&_svg]:size-7!";
 
 /**
- * True once the pointer (or keyboard focus) has entered the row. Cards then load their images
- * eagerly, so the off-screen ones are ready before the arrow is pressed: otherwise a row whose
- * titles appear nowhere else (e.g. Anime) loads and decodes several large images mid-slide and
- * the animation stutters. Rows nobody touches stay lazy, so the page doesn't get heavier.
+ * True once the row comes near the screen (or is hovered / focused). Cards then load all their
+ * images, so the off-screen ones are ready before the arrow is pressed. Otherwise a row whose
+ * titles appear nowhere else (e.g. Anime) slides onto cards that are still blank: a first-time
+ * image takes ~1.5–2 s from the optimizer. Rows the viewer never scrolls to stay lazy.
  */
 const RowWarmContext = createContext(false);
 export const useRowWarm = () => useContext(RowWarmContext);
@@ -42,6 +42,25 @@ export function Row({
   contentClassName?: string;
 }) {
   const [warm, setWarm] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Start loading a row's images when it is within ~one screen of the viewport.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (warm || !el || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          setWarm(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "600px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [warm]);
+
   const heading = (
     <>
       {title}
@@ -52,13 +71,14 @@ export function Row({
   return (
     <RowWarmContext.Provider value={warm}>
     <section
+      ref={sectionRef}
       id={id}
       className="group/row relative"
       onPointerEnter={warm ? undefined : () => setWarm(true)}
       onFocus={warm ? undefined : () => setWarm(true)}
     >
-      <div className="mx-auto mb-3 flex max-w-[1600px] items-center justify-between px-4 md:px-10">
-        <h2 className="text-lg font-bold md:text-xl">
+      <div className="mx-auto mb-1 flex max-w-[1600px] items-center justify-between gap-3 px-4 md:mb-3 md:px-10">
+        <h2 className="min-w-0 text-base font-bold md:text-xl">
           {href ? (
             <Link href={href} className="group/title flex items-center gap-1 hover:text-primary">
               {heading}
@@ -68,7 +88,7 @@ export function Row({
           )}
         </h2>
         {href && (
-          <Link href={href} className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary">
+          <Link href={href} className="shrink-0 text-xs font-medium text-muted-foreground transition-colors hover:text-primary md:text-sm">
             See All
           </Link>
         )}

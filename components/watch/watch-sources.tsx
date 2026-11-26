@@ -113,7 +113,7 @@ function ServerMenu({
         className="flex items-center gap-1.5 rounded-full border border-white/30 bg-black/50 px-3 py-1.5 text-sm text-white backdrop-blur-sm hover:border-white"
         aria-label={`Server: ${options[index].name}. Choose another server`}
       >
-        <Server className="size-4" /> <span className="max-w-40 truncate">{options[index].name}</span>
+        <Server className="size-4" /> <span className="max-w-20 truncate sm:max-w-40">{options[index].name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[70] w-64 max-h-80 overflow-y-auto">
         <DropdownMenuLabel>Servers ({options.length})</DropdownMenuLabel>

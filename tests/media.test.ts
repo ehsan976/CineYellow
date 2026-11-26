@@ -6,6 +6,7 @@ import { oembedUrl, parseHlsManifest } from "@/lib/video-providers/health";
 import { isKidsFriendly } from "@/lib/titles";
 import { isAnime, toEpisodes } from "@/lib/tmdb/map";
 import { checkSubtitles, checkVideoUrl, providerIdFor } from "@/lib/videos";
+import { releaseNotice, type ReleaseInfo } from "@/lib/releases";
 import type { Title } from "@/lib/types";
 
 const seasons = (list: [number, number | null, boolean][]) =>
@@ -102,4 +103,39 @@ describe("catalog rules", () => {
     expect(isKidsFriendly("7+")).toBe(true);
     for (const r of ["13+", "16+", "18+", "NR", "", null]) expect(isKidsFriendly(r)).toBe(false);
   });
+});
+
+describe("My List release reminders", () => {
+  const show = (last: string | null, next: string | null): ReleaseInfo => ({
+    id: "tv-1399",
+    media: "tv",
+    releaseDate: null,
+    lastEpisode: last ? { season: 2, episode: 5, airDate: last } : null,
+    nextEpisode: next ? { season: 2, episode: 6, airDate: next } : null,
+  });
+  const movie = (date: string | null): ReleaseInfo => ({ id: "movie-1", media: "movie", releaseDate: date, lastEpisode: null, nextEpisode: null });
+  const today = "2026-11-26";
+
+  it("a show's episode from this week is new", () => {
+    const n = releaseNotice(show("2026-11-24", "2026-12-01"), today);
+    expect(n?.label).toBe("New Episode");
+    expect(n?.detail).toContain("S2:E5");
+    expect(n?.time).toBe("2 days ago");
+  });
+  it("otherwise the next episode within two weeks is coming soon", () => {
+    const n = releaseNotice(show("2026-11-01", "2026-11-29"), today);
+    expect(n?.label).toBe("Coming Soon");
+    expect(n?.detail).toContain("S2:E6 airs Sun 29 Nov");
+    expect(n?.time).toBe("In 3 days");
+  });
+  it("nothing for a show with no recent or close episode", () => expect(releaseNotice(show("2026-10-01", "2027-02-01"), today)).toBeNull());
+  it("a movie releasing within 60 days is coming soon", () => expect(releaseNotice(movie("2026-12-12"), today)?.label).toBe("Coming Soon"));
+  it("a movie released this week is out now", () => expect(releaseNotice(movie("2026-11-26"), today)).toMatchObject({ label: "Out Now", time: "Today" }));
+  it("nothing for old or far-off movies, or no date", () => {
+    expect(releaseNotice(movie("2026-01-01"), today)).toBeNull();
+    expect(releaseNotice(movie("2027-06-01"), today)).toBeNull();
+    expect(releaseNotice(movie(null), today)).toBeNull();
+  });
+  it("each new episode gets its own read key", () =>
+    expect(releaseNotice(show("2026-11-24", null), today)?.readKey).not.toBe(releaseNotice(show(null, "2026-11-29"), today)?.readKey));
 });

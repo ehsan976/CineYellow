@@ -10,8 +10,8 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { myList, profile, userSettings, watchHistory } from "@/db/schema";
 import { auth } from "@/lib/auth/server";
-import { UnauthorizedError, requireUser } from "@/lib/server/dal";
-import { cleanPlayerPrefs, cleanProfilePatch, isPlanId, isTitleIdList, titleIdsOnly } from "@/lib/user-data";
+import { UnauthorizedError, requireProfile, requireUser } from "@/lib/server/dal";
+import { cleanPlayerPrefs, cleanProfilePatch, isHistoryEntry, isPlanId, isTitleIdList, titleIdsOnly } from "@/lib/user-data";
 import { isTitleId } from "@/lib/titles";
 
 export type ActionResult = { ok: boolean; error?: string };
@@ -101,6 +101,51 @@ export async function clearHistoryAction(profileId: string) {
     await db
       .delete(watchHistory)
       .where(and(eq(watchHistory.profileId, profileId), inArray(watchHistory.profileId, ownProfiles(user.id))));
+  });
+}
+
+/**
+ * Continue Watching → ✕: forgets one title's positions for a profile. A separate action on
+ * purpose: deletes through /api/me/progress count as "finished" and go to Trakt as watched.
+ */
+export async function removeTitleHistoryAction(profileId: string, titleId: string) {
+  return attempt(async () => {
+    if (!isId(profileId) || !isTitleId(titleId)) throw new Error("Invalid input");
+    const user = await requireUser();
+    await db
+      .delete(watchHistory)
+      .where(
+        and(
+          eq(watchHistory.profileId, profileId),
+          eq(watchHistory.titleId, titleId),
+          inArray(watchHistory.profileId, ownProfiles(user.id))
+        )
+      );
+  });
+}
+
+/** Undo for removeTitleHistoryAction: puts the same entries back, with their old times. No Trakt. */
+export async function restoreHistoryAction(profileId: string, entries: unknown) {
+  return attempt(async () => {
+    const rows = Array.isArray(entries) ? entries.filter(isHistoryEntry).slice(0, 200) : [];
+    if (!isId(profileId) || !rows.length) throw new Error("Invalid input");
+    await requireProfile(profileId);
+    await db
+      .insert(watchHistory)
+      .values(
+        rows.map((e) => ({
+          profileId,
+          key: e.key,
+          titleId: e.titleId,
+          season: e.season,
+          episode: e.episode,
+          positionSec: Math.round(e.time),
+          durationSec: Math.round(e.duration),
+          // Keeps its place in the row; a missing/odd time (not checked by isHistoryEntry) → now.
+          updatedAt: new Date(Number.isFinite(e.updatedAt) && e.updatedAt > 0 && e.updatedAt <= Date.now() ? e.updatedAt : Date.now()),
+        }))
+      )
+      .onConflictDoNothing();
   });
 }
 
