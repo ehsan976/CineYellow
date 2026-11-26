@@ -165,6 +165,20 @@ export function SettingsPage() {
               options={Object.fromEntries(Object.entries(qualityOptions).map(([k, o]) => [k, o.label]))}
             />
           </SettingRow>
+          <SettingRow
+            label="Block popups & redirects"
+            hint="Off by default. Stops embed servers opening ad tabs, but some servers won't play with it on."
+            htmlFor="set-adblock"
+          >
+            <Switch
+              id="set-adblock"
+              checked={prefs.adBlock === true}
+              onCheckedChange={(v) => {
+                updatePlayerPrefs({ adBlock: v });
+                saved();
+              }}
+            />
+          </SettingRow>
         </SettingsCard>
 
         <SettingsCard title="Audio & Subtitles" description="Used when the video has that language.">
@@ -193,7 +207,7 @@ export function SettingsPage() {
         </SettingsCard>
 
         <SettingsCard title="Notifications" description="What we tell you about.">
-          <SettingRow label="New episodes" hint="When a show in My List gets a new episode." htmlFor="set-n-episodes">
+          <SettingRow label="New episodes" hint="New episodes and upcoming releases of titles in My List." htmlFor="set-n-episodes">
             <Switch id="set-n-episodes" checked={notifications.newEpisodes} onCheckedChange={(v) => setNotification("newEpisodes", v)} />
           </SettingRow>
           <SettingRow label="Recommendations" hint="Titles picked for you." htmlFor="set-n-recs">

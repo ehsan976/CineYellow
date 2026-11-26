@@ -3,15 +3,26 @@
 import type { Playback, Title } from "@/lib/types";
 import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { ArrowLeft, Loader2, SkipForward } from "lucide-react";
+import { ArrowLeft, Loader2, Shield, ShieldOff, SkipForward } from "lucide-react";
+import { toast } from "sonner";
 
+import { updatePlayerPrefs } from "@/lib/stores/player-prefs-store";
 import { getProgress, saveProgress } from "@/lib/stores/watch-history-store";
 import { isUserDataReady, subscribeUserData } from "@/lib/stores/user-data-store";
+import { usePlayerPrefs } from "@/hooks/use-account";
 
 /** Save the embed's position at most this often (seconds of playback). */
 const SAVE_EVERY = 10;
 /** Don't resume into the first seconds of a video. */
 const MIN_RESUME = 30;
+
+/**
+ * Opt-in ad blocker (off by default): the host's player runs its scripts and can go fullscreen,
+ * but without allow-popups / allow-top-navigation it can't open new tabs or send this page to
+ * another site. Some hosts refuse to play inside a sandbox, which is why it isn't on by default.
+ * With it off the frame has no sandbox at all, exactly as before the blocker existed.
+ */
+const AD_BLOCK_SANDBOX = "allow-scripts allow-same-origin allow-forms allow-presentation allow-orientation-lock";
 
 /**
  * Adds what the host's player needs for position updates (and a resume point) to its URL:
@@ -126,7 +137,18 @@ export function EmbedWatch({
     return withPlayerApi(url, providerId, resumeAt);
     // Only when the source or episode changes (not on every history save), so it never reloads.
   }, [ready, url, providerId, playback.key]);
-  useEmbedProgress(frame, providerId, playback, title, src);
+  // Off unless the viewer turned it on: many servers won't play inside a sandbox.
+  const adBlock = usePlayerPrefs().adBlock === true;
+  // A sandbox change only applies to a fresh frame, so switching reloads the player.
+  const frameKey = src && `${src}|${adBlock ? "sandboxed" : "open"}`;
+  useEmbedProgress(frame, providerId, playback, title, frameKey);
+
+  const toggleAdBlock = () => {
+    updatePlayerPrefs({ adBlock: !adBlock });
+    toast(adBlock ? "Ad blocker off" : "Ad blocker on", {
+      description: adBlock ? "This server can open popups again." : "Popups and redirects from this server are blocked.",
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black text-white">
@@ -142,6 +164,19 @@ export function EmbedWatch({
           <h1 className="truncate font-semibold">{title.title}</h1>
           {playback.label && <p className="truncate text-xs text-white/60">{playback.label}</p>}
         </div>
+        <button
+          type="button"
+          onClick={toggleAdBlock}
+          aria-pressed={adBlock}
+          aria-label={adBlock ? "Ad blocker on. Turn off" : "Ad blocker off. Turn on"}
+          title={adBlock ? "Ad blocker on" : "Ad blocker off"}
+          className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm ${
+            adBlock ? "border-primary/60 text-primary hover:border-primary" : "border-white/30 text-white/70 hover:border-white"
+          }`}
+        >
+          {adBlock ? <Shield className="size-4" /> : <ShieldOff className="size-4" />}
+          <span className="hidden sm:inline">{adBlock ? "Ad block on" : "Ad block off"}</span>
+        </button>
         {header}
         {playback.next && (
           <Link
@@ -153,15 +188,16 @@ export function EmbedWatch({
           </Link>
         )}
       </header>
-      {src ? (
+      {src && frameKey ? (
         // Landscape (desktop, phone turned sideways): the host's player fills the space, as before.
         // Portrait: a 16:9 frame centred, instead of the host's player stretched to the full height
         // of an upright phone with its artwork cropped. Fullscreen still fills the device.
         <div className="flex min-h-0 flex-1 items-center justify-center">
           <iframe
             ref={frame}
-            key={src}
+            key={frameKey}
             src={src}
+            sandbox={adBlock ? AD_BLOCK_SANDBOX : undefined}
             title={playback.label ? `${title.title} — ${playback.label}` : title.title}
             className="size-full border-0 portrait:aspect-video portrait:h-auto"
             allow="autoplay; fullscreen; picture-in-picture; encrypted-media; clipboard-write; accelerometer; gyroscope"

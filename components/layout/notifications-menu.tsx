@@ -7,6 +7,7 @@ import { Bell, CheckCheck } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useApp } from "@/components/providers/app-context";
+import { useReleaseNotifications } from "@/hooks/use-release-notifications";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -51,10 +52,14 @@ function subscribeRead(listener: () => void) {
 }
 
 const SERVER_READ: string[] = [];
-const readKeyOf = (n: AppNotification) => `${n.label}:${n.title.id}`;
+const readKeyOf = (n: AppNotification) => n.readKey ?? `${n.label}:${n.title.id}`;
 
-export function NotificationsMenu({ items }: { items: AppNotification[] }) {
+export function NotificationsMenu({ items: news }: { items: AppNotification[] }) {
   const { openTitle } = useApp();
+  // My List reminders first; general news about the same title is left out.
+  const personal = useReleaseNotifications();
+  const mine = new Set(personal.map((n) => n.title.id));
+  const items = [...personal, ...news.filter((n) => !mine.has(n.title.id))];
   const read = useSyncExternalStore(subscribeRead, getRead, () => SERVER_READ);
   const unread = new Set(items.filter((n) => n.unread && !read.includes(readKeyOf(n))).map((n) => n.id));
 

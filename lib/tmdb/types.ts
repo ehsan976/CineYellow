@@ -53,6 +53,18 @@ export interface TmdbDetails extends Omit<TmdbListItem, "genre_ids"> {
   videos?: { results?: TmdbVideo[] };
   /** append_to_response=watch/providers (JustWatch data), keyed by country code. */
   "watch/providers"?: { results?: Record<string, TmdbWatchRegion> };
+  /** "Released", "In Production", "Returning Series", "Ended"… */
+  status?: string;
+  /** Shows only: the newest aired episode and the next one with a date, if any. */
+  last_episode_to_air?: TmdbEpisodeRef | null;
+  next_episode_to_air?: TmdbEpisodeRef | null;
+}
+
+export interface TmdbEpisodeRef {
+  season_number?: number;
+  episode_number?: number;
+  /** "2026-11-29" (no time of day). */
+  air_date?: string | null;
 }
 
 export interface TmdbProvider {

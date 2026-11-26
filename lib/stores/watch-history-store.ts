@@ -5,6 +5,7 @@ import {
   EMPTY,
   clearActiveHistory,
   getActiveHistory,
+  removeTitleFromActiveHistory,
   setProgress,
   subscribeUserData,
   type History,
@@ -41,6 +42,14 @@ export function saveProgress({ key, titleId, season, episode, time, duration }: 
 /** Forget everything for the active profile (Settings → Clear watch history). */
 export function clearHistory() {
   clearActiveHistory();
+}
+
+/**
+ * Drops one title from Continue Watching (all its episodes' positions). Returns an undo, or null
+ * when there was nothing to remove. Doesn't mark it as watched on Trakt.
+ */
+export function removeFromContinueWatching(titleId: string) {
+  return removeTitleFromActiveHistory(titleId);
 }
 
 /** Newest entry per title, most recent first. */

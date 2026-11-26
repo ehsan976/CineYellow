@@ -15,6 +15,8 @@ import {
   addToListAction,
   clearHistoryAction,
   removeFromListAction,
+  removeTitleHistoryAction,
+  restoreHistoryAction,
   setMyListAction,
   updateNotificationsAction,
   updatePlanAction,
@@ -311,6 +313,47 @@ export function clearActiveHistory() {
     () => clearHistoryAction(id),
     () => setState({ history: before }, { write: true })
   );
+}
+
+/**
+ * Continue Watching → ✕: forgets one title's positions for the active profile. Its queued saves
+ * are dropped too (they'd bring it back). Returns an undo that puts the same entries back.
+ * Neither step goes through /api/me/progress, whose deletes count as "finished" for Trakt.
+ */
+export function removeTitleFromActiveHistory(titleId: string): (() => void) | null {
+  if (notReady()) return null;
+  const id = activeProfileId();
+  const before = state.history;
+  const current = before[id] ?? EMPTY_HISTORY;
+  const removed = Object.values(current).filter((e) => e.titleId === titleId);
+  if (!removed.length) return null;
+  const batch = pending.get(id);
+  for (const e of removed) {
+    batch?.upserts.delete(e.key);
+    batch?.deletes.delete(e.key);
+  }
+  const without = Object.fromEntries(Object.entries(current).filter(([, e]) => e.titleId !== titleId));
+  setState({ history: { ...before, [id]: without } }, { write: true });
+  void sync(
+    () => removeTitleHistoryAction(id, titleId),
+    () => setState({ history: before }, { write: true })
+  );
+
+  return () => {
+    const now = state.history[id] ?? EMPTY_HISTORY;
+    // Anything watched since the removal wins over the old entries.
+    const back = removed.filter((e) => !now[e.key]);
+    if (!back.length) return;
+    setState({ history: { ...state.history, [id]: { ...now, ...Object.fromEntries(back.map((e) => [e.key, e])) } } }, { write: true });
+    void sync(
+      () => restoreHistoryAction(id, back),
+      () => {
+        const after = { ...(state.history[id] ?? EMPTY_HISTORY) };
+        for (const e of back) delete after[e.key];
+        setState({ history: { ...state.history, [id]: after } }, { write: true });
+      }
+    );
+  };
 }
 
 let prefsTimer: ReturnType<typeof setTimeout> | undefined;

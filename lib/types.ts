@@ -245,6 +245,8 @@ export interface AppNotification {
   detail: string;
   time: string;
   unread: boolean;
+  /** What "read" is remembered by; default "<label>:<title id>". */
+  readKey?: string;
 }
 
 export interface NextEpisode {
@@ -354,6 +356,8 @@ export interface PlayerPrefs {
   /** Language code or "off". */
   subtitleLanguage?: string;
   quality?: QualityPreference;
+  /** Sandbox embed players so they can't open popups or redirect the page. Unset = off. */
+  adBlock?: boolean;
 }
 
 export interface AuthState {
