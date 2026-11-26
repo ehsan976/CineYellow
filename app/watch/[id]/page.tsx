@@ -13,7 +13,7 @@ import { getEpisodes, getTitle, getTitleDetails } from "@/lib/tmdb/catalog";
 import { getAutoSkipTimes } from "@/lib/anilist/aniskip";
 import { getPrerenderIds } from "@/lib/tmdb/home";
 import { getPlayback, withVideoSource } from "@/lib/player/playback";
-import type { WatchOption } from "@/lib/types";
+import type { ServerLanguage, WatchOption } from "@/lib/types";
 import { getAvailableTitleIds, getVideoSources } from "@/lib/server/video-sources";
 import { getEmbedWatchOptions } from "@/lib/player/embed-providers";
 import { WatchSources } from "@/components/watch/watch-sources";
@@ -40,6 +40,9 @@ export default function WatchPage({ params, searchParams }: WatchProps) {
     </Suspense>
   );
 }
+
+const serverLanguageFor = (label: string, providerName: string): ServerLanguage =>
+  /\bhindi\b|\burdu\b|\bhin\b|\bbollywood\b/i.test(`${label} ${providerName}`) ? "hindi" : "english";
 
 async function WatchContent({ params, searchParams }: WatchProps) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
@@ -69,11 +72,11 @@ async function WatchContent({ params, searchParams }: WatchProps) {
     kind: s.kind,
     name: s.label ? `${s.label} · ${s.providerName}` : `Server ${i + 1} · ${s.providerName}`,
     providerId: s.providerId,
+    language: serverLanguageFor(s.label, s.providerName),
     ...(s.kind === "hls" ? { playback: withVideoSource(demo, s, title, auto) } : { embedUrl: s.url }),
   }));
 
-  // 2. All 22 embed providers from the open-source streaming applications
-  // (Euthopiar, cinextma, NullFlix, KiduyuTv_final, Zangetsu, streamvault, miru-web, TatakaiAPI, elyzen, watchthismovie)
+  // 2. Embed providers grouped into English (VidRift first) and Hindi servers
   const embedOptions = getEmbedWatchOptions({
     titleId: title.id,
     season: demo.season,

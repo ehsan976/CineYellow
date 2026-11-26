@@ -151,6 +151,8 @@ export interface VideoSource {
   subtitles: SubtitleTrack[];
 }
 
+export type ServerLanguage = "english" | "hindi";
+
 /**
  * One playable choice on the watch page, in ranked order: an HLS source carries its own Playback
  * for the site player; an embed carries the host's player URL.
@@ -161,6 +163,7 @@ export interface WatchOption {
   /** Shown in the "Server" menu, e.g. "Server 1 · YouTube" or the admin's label. */
   name: string;
   providerId: string;
+  language?: ServerLanguage;
   playback?: Playback;
   embedUrl?: string;
 }

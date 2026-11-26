@@ -19,6 +19,7 @@ export const EMBED_HOSTS = [
   "Cloudflare Stream",
   "Mux",
   "Dailymotion",
+  "VidRift",
   "VidLink",
   "Embed.su",
   "CineSrc",
@@ -33,9 +34,13 @@ export const EMBED_HOSTS = [
   "111Movies",
   "NontonGo",
   "Frembed",
+  "VidZee",
+  "VidFast",
 ] as const;
 
 export const STREAMING_EMBED_DOMAINS = [
+  "embed.vidrift.net",
+  "vidrift.net",
   "vidlink.pro",
   "embed.su",
   "cinesrc.st",
@@ -52,6 +57,7 @@ export const STREAMING_EMBED_DOMAINS = [
   "vidsrc.icu",
   "autoembed.cc",
   "player.autoembed.cc",
+  "v2.autoembed.cc",
   "autoembed.me",
   "multiembed.mov",
   "embed.smashystream.com",
@@ -67,6 +73,10 @@ export const STREAMING_EMBED_DOMAINS = [
   "nontongo.win",
   "frembed.pro",
   "frembed.fun",
+  "player.vidzee.wtf",
+  "vidzee.wtf",
+  "player.vidfast.pro",
+  "vidfast.pro",
 ] as const;
 
 const YT_ID = /^[\w-]{6,20}$/;
@@ -204,6 +214,7 @@ export function providerIdFor(kind: VideoKind, url: string): string | null {
   if (on("youtube.com", "youtube-nocookie.com", "youtu.be")) return "youtube";
   if (on("vimeo.com")) return "vimeo";
   if (on("dailymotion.com", "dai.ly")) return "dailymotion";
+  if (on("vidrift.net")) return "vidrift";
   if (on("vidlink.pro")) return "vidlink";
   if (on("embed.su")) return "embed-su";
   if (on("cinesrc.st", "cinesrc.xyz")) return "cinesrc";
@@ -218,6 +229,8 @@ export function providerIdFor(kind: VideoKind, url: string): string | null {
   if (on("111movies.com")) return "111movies";
   if (on("nontongo.win")) return "nontongo";
   if (on("frembed.pro", "frembed.fun")) return "frembed";
+  if (on("vidzee.wtf")) return "vidzee";
+  if (on("vidfast.pro")) return "vidfast";
   return null;
 }
 

@@ -6,6 +6,7 @@ import { oembedUrl, parseHlsManifest } from "@/lib/video-providers/health";
 import { isKidsFriendly } from "@/lib/titles";
 import { isAnime, toEpisodes } from "@/lib/tmdb/map";
 import { checkSubtitles, checkVideoUrl, providerIdFor } from "@/lib/videos";
+import { getEmbedWatchOptions } from "@/lib/player/embed-providers";
 import { releaseNotice, type ReleaseInfo } from "@/lib/releases";
 import type { Title } from "@/lib/types";
 
@@ -44,8 +45,19 @@ describe("video links", () => {
     expect(c).toMatchObject({ ok: true, kind: "embed", url: "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ" });
     expect(providerIdFor("embed", c.url)).toBe("youtube");
   });
-  it.each(["https://vidsrc.xyz/embed/movie/550", "https://2embed.cc/embed/550"])("accepts known streaming embed %s", (url) => {
+  it.each([
+    "https://embed.vidrift.net/embed/movie/438631",
+    "https://vidsrc.xyz/embed/movie/550",
+    "https://2embed.cc/embed/550",
+    "https://player.vidzee.wtf/embed/movie/438631?sr=6",
+    "https://player.vidfast.pro/movie/438631?sub=hi",
+  ])("accepts known streaming embed %s", (url) => {
     expect(checkVideoUrl(url).ok).toBe(true);
+  });
+  it("puts VidRift first as English and includes Hindi embed options", () => {
+    const opts = getEmbedWatchOptions({ titleId: "movie-438631" });
+    expect(opts[0]).toMatchObject({ providerId: "vidrift", language: "english" });
+    expect(opts.some((o) => o.language === "hindi")).toBe(true);
   });
   it.each(["https://malicious-random-site.com/video.html", "http://cdn.example.com/a.m3u8"])("rejects %s", (url) =>
     expect(checkVideoUrl(url).ok).toBe(false)
