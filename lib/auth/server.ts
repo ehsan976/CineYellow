@@ -5,12 +5,14 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { admin } from "better-auth/plugins";
+import { after } from "next/server";
 
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { billingEnabled } from "@/lib/payments/config";
 import { isPlanId } from "@/lib/user-data";
 import { createUserDefaults } from "@/lib/server/user-defaults";
+import { sendPasswordResetEmail } from "@/lib/server/email";
 import { getSiteUrl, getTrustedOrigins } from "@/lib/server/site-url";
 
 const googleId = process.env.GOOGLE_CLIENT_ID;
@@ -39,6 +41,19 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     minPasswordLength: 8,
+    // Forgot password: /forgot-password asks for the link, the email opens /reset-password?token=…
+    // The email goes out after the response (after()), so the answer takes the same time whether
+    // or not the address has an account. Better Auth answers the same way in both cases too.
+    sendResetPassword: async ({ user, url }) => {
+      after(() =>
+        sendPasswordResetEmail({ to: user.email, name: user.name, url }).catch((error) =>
+          console.error("[email] password reset email failed:", error instanceof Error ? error.message : error)
+        )
+      );
+    },
+    resetPasswordTokenExpiresIn: 60 * 60, // 1 hour (the email says so)
+    // A reset signs out every device, in case someone else had the old password.
+    revokeSessionsOnPasswordReset: true,
   },
   socialProviders: googleEnabled
     ? { google: { clientId: googleId!, clientSecret: googleSecret!, prompt: "select_account" } }

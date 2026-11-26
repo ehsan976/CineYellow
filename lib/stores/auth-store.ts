@@ -18,6 +18,7 @@ function friendly(error: AuthError, fallback: string): string {
   if (code === "PASSWORD_TOO_LONG") return "That password is too long.";
   if (code === "INVALID_EMAIL") return "Please enter a valid email address.";
   if (code === "BANNED_USER") return "Your account has been suspended. Please contact support.";
+  if (code === "INVALID_TOKEN") return "This reset link has expired or was already used. Ask for a new one.";
   if (error?.status === 429) return "Too many attempts. Wait a minute and try again.";
   if (!error?.status) return "Can't reach the server. Check your connection and try again.";
   return error?.message || fallback;
@@ -75,6 +76,19 @@ export function changePassword({ currentPassword, newPassword }: { currentPasswo
     () => authClient.changePassword({ currentPassword, newPassword, revokeOtherSessions: true }),
     "Couldn't change your password."
   );
+}
+
+/**
+ * Emails a reset link. Succeeds whether or not the address has an account (so the form can't be
+ * used to find out who is signed up). The link opens /reset-password?token=…
+ */
+export function requestPasswordReset(email: string) {
+  return run(() => authClient.requestPasswordReset({ email, redirectTo: "/reset-password" }), "Couldn't send the reset link.");
+}
+
+/** Sets a new password with the token from the reset link. Every device is signed out. */
+export function resetPassword({ token, newPassword }: { token: string; newPassword: string }) {
+  return run(() => authClient.resetPassword({ token, newPassword }), "Couldn't reset your password.");
 }
 
 export async function deleteAccount() {

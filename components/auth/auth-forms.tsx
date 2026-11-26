@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { plans } from "@/lib/stores/account-store";
-import { safeNext, signIn, signInWithGoogle, signUp } from "@/lib/stores/auth-store";
+import { requestPasswordReset, resetPassword, safeNext, signIn, signInWithGoogle, signUp } from "@/lib/stores/auth-store";
 import { AuthError, FloatingInput, FloatingPassword } from "@/components/auth/auth-fields";
 import { Checkbox } from "@/components/ui/checkbox";
 
@@ -87,7 +87,7 @@ const oauthErrors: Record<string, string> = {
   banned_user: "Your account has been suspended. Please contact support.",
 };
 
-export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }) {
+export function LoginForm({ googleEnabled = false, resetEnabled = false }: { googleEnabled?: boolean; resetEnabled?: boolean }) {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
   const oauthError = params.get("error");
@@ -163,6 +163,17 @@ export function LoginForm({ googleEnabled = false }: { googleEnabled?: boolean }
           </>
         )}
 
+        {resetEnabled && (
+          <p className="text-center">
+            <Link
+              href={isEmail(email) ? `/forgot-password?email=${encodeURIComponent(email.trim())}` : "/forgot-password"}
+              className="text-base font-medium text-white underline-offset-4 hover:underline"
+            >
+              Forgot password?
+            </Link>
+          </p>
+        )}
+
         <RememberMe checked={remember} onChange={setRemember} />
       </form>
 
@@ -196,6 +207,21 @@ const strength = [
   { label: "Strong", bar: "bg-emerald-400" },
 ];
 
+function PasswordStrength({ password }: { password: string }) {
+  if (!password) return null;
+  const score = passwordScore(password);
+  return (
+    <div className="mt-2 flex items-center gap-2" aria-live="polite">
+      <div className="flex flex-1 gap-1">
+        {[1, 2, 3, 4].map((i) => (
+          <span key={i} className={cn("h-1 flex-1 rounded-full bg-white/15", i <= Math.max(score, 1) && strength[score].bar)} />
+        ))}
+      </div>
+      <span className="w-16 text-right text-xs text-white/60">{strength[score].label}</span>
+    </div>
+  );
+}
+
 export function SignupForm({ googleEnabled = false, billingEnabled = false }: { googleEnabled?: boolean; billingEnabled?: boolean }) {
   const params = useSearchParams();
   const next = safeNext(params.get("next"));
@@ -211,7 +237,6 @@ export function SignupForm({ googleEnabled = false, billingEnabled = false }: { 
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
-  const score = passwordScore(form.password);
 
   const errors = {
     name: !form.name.trim() && "Please enter your name.",
@@ -256,16 +281,7 @@ export function SignupForm({ googleEnabled = false, billingEnabled = false }: { 
         </div>
         <div>
           <FloatingPassword id="signup-password" label="Password" autoComplete="new-password" value={form.password} onChange={set("password")} invalid={!!show("password")} />
-          {form.password && (
-            <div className="mt-2 flex items-center gap-2" aria-live="polite">
-              <div className="flex flex-1 gap-1">
-                {[1, 2, 3, 4].map((i) => (
-                  <span key={i} className={cn("h-1 flex-1 rounded-full bg-white/15", i <= Math.max(score, 1) && strength[score].bar)} />
-                ))}
-              </div>
-              <span className="w-16 text-right text-xs text-white/60">{strength[score].label}</span>
-            </div>
-          )}
+          <PasswordStrength password={form.password} />
           <AuthError>{show("password")}</AuthError>
         </div>
         <div>
@@ -330,6 +346,178 @@ export function SignupForm({ googleEnabled = false, billingEnabled = false }: { 
           Sign in now.
         </Link>
       </p>
+    </>
+  );
+}
+
+const linkCls = "font-semibold text-white hover:underline";
+
+/** Asks for the reset link. Says the same thing whether or not the email has an account. */
+export function ForgotPasswordForm() {
+  const params = useSearchParams();
+  const [email, setEmail] = useState(() => params.get("email") ?? "");
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [sentTo, setSentTo] = useState("");
+  const [banner, setBanner] = useState("");
+
+  const emailError = tried && !isEmail(email) && "Please enter a valid email address.";
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setTried(true);
+    setBanner("");
+    if (!isEmail(email)) return;
+    setBusy(true);
+    const result = await requestPasswordReset(email.trim());
+    setBusy(false);
+    if (!result.ok) return setBanner(result.error);
+    setSentTo(email.trim());
+  };
+
+  if (sentTo) {
+    return (
+      <>
+        <h1 className="mb-4 text-3xl font-bold">Check your email</h1>
+        <p className="text-white/80">
+          If <span className="font-semibold text-white">{sentTo}</span> has a CineYellow account, we&apos;ve sent it a link to
+          choose a new password. The link works for 1 hour.
+        </p>
+        <p className="mt-3 text-sm text-white/60">Nothing there? Look in the spam folder, or send it again in a minute.</p>
+        <div className="mt-7 space-y-3">
+          <Link href="/login" className={primaryBtn}>
+            Back to Sign In
+          </Link>
+          <button type="button" className={secondaryBtn} onClick={() => setSentTo("")}>
+            Send again
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <h1 className="mb-2 text-3xl font-bold">Forgot password?</h1>
+      <p className="mb-7 text-white/70">Enter your account&apos;s email and we&apos;ll send you a link to choose a new password.</p>
+      <Banner>{banner}</Banner>
+
+      <form onSubmit={submit} noValidate className="space-y-4">
+        <div>
+          <FloatingInput
+            id="forgot-email"
+            label="Email address"
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            invalid={!!emailError}
+            aria-describedby={emailError ? "forgot-email-error" : undefined}
+          />
+          <AuthError id="forgot-email-error">{emailError}</AuthError>
+        </div>
+        <button type="submit" disabled={busy} className={primaryBtn}>
+          {busy && <Loader2 className="size-4 animate-spin" />} Send reset link
+        </button>
+      </form>
+
+      <p className="mt-6 text-base text-white/70">
+        Remembered it?{" "}
+        <Link href="/login" className={linkCls}>
+          Sign in now.
+        </Link>
+      </p>
+    </>
+  );
+}
+
+/** Opened from the email: /reset-password?token=… (or ?error=INVALID_TOKEN for a bad/expired link). */
+export function ResetPasswordForm() {
+  const params = useSearchParams();
+  const token = params.get("token") ?? "";
+  const [form, setForm] = useState({ password: "", confirm: "" });
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState(false);
+  const [banner, setBanner] = useState("");
+
+  if (!token || params.get("error")) {
+    return (
+      <>
+        <h1 className="mb-4 text-3xl font-bold">Link expired</h1>
+        <p className="text-white/80">This reset link has expired or was already used. Reset links work once, for 1 hour.</p>
+        <Link href="/forgot-password" className={cn(primaryBtn, "mt-7")}>
+          Get a new link
+        </Link>
+      </>
+    );
+  }
+
+  if (done) {
+    return (
+      <>
+        <h1 className="mb-4 text-3xl font-bold">Password changed</h1>
+        <p className="text-white/80">Your new password is ready. For safety, every device was signed out; sign in again to keep watching.</p>
+        <a href="/login" className={cn(primaryBtn, "mt-7")}>
+          Sign In
+        </a>
+      </>
+    );
+  }
+
+  const errors = {
+    password: form.password.length < 8 && "Use at least 8 characters.",
+    confirm: !form.confirm ? "Please confirm your password." : form.confirm !== form.password && "Passwords don't match.",
+  };
+  const show = (key) => (tried ? errors[key] : null);
+  const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setTried(true);
+    setBanner("");
+    if (Object.values(errors).some(Boolean)) return;
+    setBusy(true);
+    const result = await resetPassword({ token, newPassword: form.password });
+    setBusy(false);
+    if (!result.ok) return setBanner(result.error);
+    setDone(true);
+  };
+
+  return (
+    <>
+      <h1 className="mb-2 text-3xl font-bold">Choose a new password</h1>
+      <p className="mb-7 text-white/70">At least 8 characters. You&apos;ll be signed out on every device.</p>
+      <Banner>{banner}</Banner>
+
+      <form onSubmit={submit} noValidate className="space-y-4">
+        <div>
+          <FloatingPassword
+            id="reset-password"
+            label="New password"
+            autoComplete="new-password"
+            value={form.password}
+            onChange={set("password")}
+            invalid={!!show("password")}
+          />
+          <PasswordStrength password={form.password} />
+          <AuthError>{show("password")}</AuthError>
+        </div>
+        <div>
+          <FloatingPassword
+            id="reset-confirm"
+            label="Confirm new password"
+            autoComplete="new-password"
+            value={form.confirm}
+            onChange={set("confirm")}
+            invalid={!!show("confirm")}
+          />
+          <AuthError>{show("confirm")}</AuthError>
+        </div>
+        <button type="submit" disabled={busy} className={primaryBtn}>
+          {busy && <Loader2 className="size-4 animate-spin" />} Save new password
+        </button>
+      </form>
     </>
   );
 }
