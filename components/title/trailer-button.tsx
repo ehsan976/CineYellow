@@ -1,10 +1,11 @@
 "use client";
 
 import type { Trailer } from "@/lib/types";
-import { useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import { Clapperboard, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { useFrameStopsWhenHidden } from "@/hooks/use-stop-when-hidden";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -21,6 +22,10 @@ export function TrailerButton({
   size?: "lg" | "default";
 }) {
   const [open, setOpen] = useState(false);
+  // Leaving the page (Back/Forward hides it, it isn't unmounted) blanks the trailer at once and
+  // closes the popup, so coming back doesn't find it open.
+  const { attach: stopFrameWhenHidden, generation } = useFrameStopsWhenHidden();
+  useLayoutEffect(() => () => setOpen(false), []);
   if (!trailer) return null;
 
   return (
@@ -41,6 +46,8 @@ export function TrailerButton({
             {/* Mounted only while open, so closing stops the video. */}
             {open && (
               <iframe
+                ref={stopFrameWhenHidden}
+                key={generation}
                 src={`https://www.youtube-nocookie.com/embed/${encodeURIComponent(trailer.key)}?autoplay=1&rel=0`}
                 title={`${titleName} — ${trailer.name}`}
                 className="absolute inset-0 h-full w-full border-0"

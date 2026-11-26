@@ -11,8 +11,10 @@ import { EmbedWatch } from "@/components/watch/embed-watch";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -107,6 +109,18 @@ function ServerMenu({
   failed: string[];
   onChoose: (i: number) => void;
 }) {
+  const indexed = options.map((option, i) => ({ option, index: i }));
+  const englishServers = indexed.filter((item) => item.option.language !== "hindi");
+  const hindiServers = indexed.filter((item) => item.option.language === "hindi");
+
+  const renderItem = ({ option, index: itemIndex }: { option: WatchOption; index: number }) => (
+    <DropdownMenuItem key={option.id} onSelect={() => onChoose(itemIndex)} className="gap-2">
+      <Check className={itemIndex === index ? "size-4 text-primary" : "size-4 opacity-0"} />
+      <span className="flex-1 truncate">{option.name}</span>
+      {failed.includes(option.id) && <span className="text-xs text-destructive">failed</span>}
+    </DropdownMenuItem>
+  );
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -116,14 +130,23 @@ function ServerMenu({
         <Server className="size-4" /> <span className="max-w-20 truncate sm:max-w-40">{options[index].name}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="z-[70] w-64 max-h-80 overflow-y-auto">
-        <DropdownMenuLabel>Servers ({options.length})</DropdownMenuLabel>
-        {options.map((o, i) => (
-          <DropdownMenuItem key={o.id} onSelect={() => onChoose(i)} className="gap-2">
-            <Check className={i === index ? "size-4 text-primary" : "size-4 opacity-0"} />
-            <span className="flex-1 truncate">{o.name}</span>
-            {failed.includes(o.id) && <span className="text-xs text-destructive">failed</span>}
-          </DropdownMenuItem>
-        ))}
+        {englishServers.length > 0 && (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wider text-primary">
+              English ({englishServers.length})
+            </DropdownMenuLabel>
+            {englishServers.map(renderItem)}
+          </DropdownMenuGroup>
+        )}
+        {englishServers.length > 0 && hindiServers.length > 0 && <DropdownMenuSeparator />}
+        {hindiServers.length > 0 && (
+          <DropdownMenuGroup>
+            <DropdownMenuLabel className="text-xs font-semibold uppercase tracking-wider text-primary">
+              Hindi ({hindiServers.length})
+            </DropdownMenuLabel>
+            {hindiServers.map(renderItem)}
+          </DropdownMenuGroup>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
