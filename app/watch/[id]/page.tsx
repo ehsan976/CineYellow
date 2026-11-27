@@ -15,6 +15,7 @@ import { getPrerenderIds } from "@/lib/tmdb/home";
 import { getPlayback, withVideoSource } from "@/lib/player/playback";
 import type { ServerLanguage, WatchOption } from "@/lib/types";
 import { getAvailableTitleIds, getVideoSources } from "@/lib/server/video-sources";
+import { getEmbedServerStates } from "@/lib/server/embed-health";
 import { getEmbedWatchOptions } from "@/lib/player/embed-providers";
 import { WatchSources } from "@/components/watch/watch-sources";
 import { KidsGate } from "@/components/watch/kids-gate";
@@ -60,8 +61,11 @@ async function WatchContent({ params, searchParams }: WatchProps) {
 
   if (!access.allowed && !access.isAdmin) return <PlanRequired title={title} pendingPayment={access.pendingPayment} />;
 
-  // 1. Admin/Database configured sources for this title (if any)
-  const sources = await getVideoSources(title.id, demo.season, demo.episode);
+  // 1. Admin/Database configured sources + live embed server health states
+  const [sources, embedStates] = await Promise.all([
+    getVideoSources(title.id, demo.season, demo.episode),
+    getEmbedServerStates(),
+  ]);
 
   // Anime auto-skip times for HLS sources
   const needsTimes = sources.some((s) => s.kind === "hls" && (s.introStart === null || s.creditsAt === null));
@@ -76,12 +80,13 @@ async function WatchContent({ params, searchParams }: WatchProps) {
     ...(s.kind === "hls" ? { playback: withVideoSource(demo, s, title, auto) } : { embedUrl: s.url }),
   }));
 
-  // 2. Embed providers grouped into English (VidRift first) and Hindi servers
+  // 2. Embed providers grouped into English (VidRift first) and Hindi servers, with live health & mirror fallback
   const embedOptions = getEmbedWatchOptions({
     titleId: title.id,
     season: demo.season,
     episode: demo.episode,
     imdbId: details?.imdbId ?? null,
+    states: embedStates,
   });
 
   const options: WatchOption[] = [...dbOptions, ...embedOptions];
