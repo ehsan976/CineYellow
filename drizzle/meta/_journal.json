@@ -99,6 +99,13 @@
       "when": 1795760883707,
       "tag": "0013_embed_server_health",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795764961256,
+      "tag": "0014_custom_embed_servers",
+      "breakpoints": true
     }
   ]
 }

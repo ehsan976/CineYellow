@@ -23,6 +23,13 @@ export interface EmbedProvider {
 }
 
 export interface EmbedServerRuntimeState {
+  isCustom?: boolean;
+  name?: string | null;
+  badge?: string | null;
+  language?: ServerLanguage | null;
+  movieUrlTemplate?: string | null;
+  tvUrlTemplate?: string | null;
+  mirrors?: string[] | null;
   enabled: boolean;
   priority: number;
   status: ServerHealthStatus;
@@ -177,12 +184,125 @@ export const EMBED_PROVIDERS: EmbedProvider[] = [
 
 export const defaultProviderPriority = (index: number) => (index + 1) * 10;
 
+export const defaultMovieTemplate = (p: EmbedProvider) => p.getMovieUrl("{id}", "{imdb}");
+export const defaultTvTemplate = (p: EmbedProvider) => p.getTvUrl("{id}", "{s}" as unknown as number, "{e}" as unknown as number, "{imdb}");
+
+/**
+ * Formats an admin-configured URL template using `{id}` / `{tmdb}`, `{imdb}`, `{s}` / `{season}`, `{e}` / `{episode}`.
+ */
+export function formatEmbedTemplate(
+  template: string,
+  params: { tmdbId: number | string; season?: number; episode?: number; imdbId?: string | null }
+): string {
+  const idVal = encodeURIComponent(String(params.tmdbId));
+  const imdbVal = encodeURIComponent(String(params.imdbId ?? params.tmdbId));
+  const sVal = String(Math.max(1, params.season ?? 1));
+  const eVal = String(Math.max(1, params.episode ?? 1));
+  return template
+    .replace(/\{(?:id|tmdb)\}/gi, idVal)
+    .replace(/\{imdb\}/gi, imdbVal)
+    .replace(/\{(?:s|season)\}/gi, sVal)
+    .replace(/\{(?:e|episode)\}/gi, eVal);
+}
+
+/**
+ * Validates an admin URL template (must be https:// and parse cleanly once placeholders are filled).
+ */
+export function validateEmbedTemplate(
+  raw: string,
+  { required }: { required: boolean }
+): { ok: boolean; value: string; error?: string } {
+  const trimmed = raw.trim();
+  if (!trimmed) {
+    return required ? { ok: false, value: "", error: "URL template is required." } : { ok: true, value: "" };
+  }
+  if (trimmed.length > 500) return { ok: false, value: "", error: "URL template is too long (max 500 chars)." };
+  if (!trimmed.startsWith("https://")) return { ok: false, value: "", error: "Use an https:// URL template." };
+  const sample = formatEmbedTemplate(trimmed, { tmdbId: 550, season: 1, episode: 1, imdbId: "tt0137523" });
+  try {
+    const parsed = new URL(sample);
+    if (parsed.protocol !== "https:" || !parsed.hostname.includes(".")) {
+      return { ok: false, value: "", error: "Enter a valid https:// domain." };
+    }
+  } catch {
+    return { ok: false, value: "", error: "URL template isn't a valid URL." };
+  }
+  return { ok: true, value: trimmed };
+}
+
+export interface ResolvedEmbedProvider {
+  id: string;
+  isCustom: boolean;
+  name: string;
+  badge: string;
+  language: ServerLanguage;
+  mirrors: string[];
+  hasTv: boolean;
+  defaultIndex: number;
+  getMovieUrl: (tmdbId: number | string, imdbId?: string | null) => string;
+  getTvUrl: (tmdbId: number | string, season: number, episode: number, imdbId?: string | null) => string;
+}
+
+/**
+ * Merges built-in `EMBED_PROVIDERS` (with any DB overrides applied) and custom DB servers into one list.
+ */
+export function resolveEmbedProviders(states?: Record<string, EmbedServerRuntimeState>): ResolvedEmbedProvider[] {
+  const builtInIds = new Set<string>();
+  const resolved: ResolvedEmbedProvider[] = EMBED_PROVIDERS.map((p, idx) => {
+    builtInIds.add(p.id);
+    const s = states?.[p.id];
+    const movieTpl = s?.movieUrlTemplate?.trim() || null;
+    const tvTpl = s?.tvUrlTemplate?.trim() || null;
+    return {
+      id: p.id,
+      isCustom: false,
+      name: s?.name?.trim() || p.name,
+      badge: s?.badge !== undefined && s.badge !== null ? s.badge : (p.badge ?? ""),
+      language: s?.language ?? p.language,
+      mirrors: s?.mirrors ?? p.mirrors ?? [],
+      hasTv: true,
+      defaultIndex: idx,
+      getMovieUrl: movieTpl
+        ? (id, imdb) => formatEmbedTemplate(movieTpl, { tmdbId: id, imdbId: imdb })
+        : p.getMovieUrl,
+      getTvUrl: tvTpl
+        ? (id, season, episode, imdb) => formatEmbedTemplate(tvTpl, { tmdbId: id, season, episode, imdbId: imdb })
+        : p.getTvUrl,
+    };
+  });
+
+  if (states) {
+    let customIdx = EMBED_PROVIDERS.length;
+    for (const [id, s] of Object.entries(states)) {
+      if (builtInIds.has(id) || !s.isCustom) continue;
+      const movieTpl = s.movieUrlTemplate?.trim() ?? "";
+      const tvTpl = s.tvUrlTemplate?.trim() ?? "";
+      if (!movieTpl && !tvTpl) continue;
+      resolved.push({
+        id,
+        isCustom: true,
+        name: s.name?.trim() || id,
+        badge: s.badge?.trim() || "Custom",
+        language: s.language ?? "english",
+        mirrors: s.mirrors ?? [],
+        hasTv: Boolean(tvTpl),
+        defaultIndex: customIdx++,
+        getMovieUrl: (tmdbId, imdb) => formatEmbedTemplate(movieTpl || tvTpl, { tmdbId, imdbId: imdb }),
+        getTvUrl: (tmdbId, season, episode, imdb) =>
+          tvTpl ? formatEmbedTemplate(tvTpl, { tmdbId, season, episode, imdbId: imdb }) : "",
+      });
+    }
+  }
+
+  return resolved;
+}
+
 const isUnavailable = (state?: EmbedServerRuntimeState) =>
   Boolean(state && (state.status === "down" || state.failCount >= EMBED_FAILS_TO_SKIP));
 
 /**
- * Builds WatchOption entries for enabled embed providers, applying admin priorities,
- * smart auto-skip sorting (demoting broken/reported servers), and mirror fallback when down.
+ * Builds WatchOption entries for enabled embed providers (built-in + custom), applying admin
+ * priorities, smart auto-skip sorting (demoting broken/reported servers), and mirror fallback when down.
  */
 export function getEmbedWatchOptions({
   titleId,
@@ -203,61 +323,69 @@ export function getEmbedWatchOptions({
   const s = Math.max(1, season ?? 1);
   const e = Math.max(1, episode ?? 1);
 
-  const byId = new Map(EMBED_PROVIDERS.map((p) => [p.id, p]));
-  const urlFor = (p: EmbedProvider) =>
+  const providers = resolveEmbedProviders(states);
+  const byId = new Map(providers.map((p) => [p.id, p]));
+  const urlFor = (p: ResolvedEmbedProvider) =>
     media === "movie" ? p.getMovieUrl(tmdbId, imdbId) : p.getTvUrl(tmdbId, s, e, imdbId);
 
-  const activeEntries = EMBED_PROVIDERS.map((provider, idx) => {
-    const state = states?.[provider.id];
-    if (state && !state.enabled) return null;
+  const activeEntries = providers
+    .map((provider) => {
+      const state = states?.[provider.id];
+      if (state && !state.enabled) return null;
+      if (media === "tv" && !provider.hasTv) return null;
 
-    let activeProvider = provider;
-    let activeState = state;
-    let fallbackFrom: string | undefined;
+      let activeProvider = provider;
+      let activeState = state;
+      let fallbackFrom: string | undefined;
 
-    // Mirror fallback: if this server is down / auto-skipped, route to its first healthy enabled mirror.
-    if (isUnavailable(state) && provider.mirrors?.length) {
-      for (const mirrorId of provider.mirrors) {
-        const mirror = byId.get(mirrorId);
-        const mirrorState = states?.[mirrorId];
-        if (!mirror) continue;
-        if (mirrorState && !mirrorState.enabled) continue;
-        if (isUnavailable(mirrorState)) continue;
-        activeProvider = mirror;
-        activeState = mirrorState;
-        fallbackFrom = provider.name;
-        break;
+      // Mirror fallback: if this server is down / auto-skipped, route to its first healthy enabled mirror.
+      if (isUnavailable(state) && provider.mirrors.length) {
+        for (const mirrorId of provider.mirrors) {
+          const mirror = byId.get(mirrorId);
+          const mirrorState = states?.[mirrorId];
+          if (!mirror) continue;
+          if (media === "tv" && !mirror.hasTv) continue;
+          if (mirrorState && !mirrorState.enabled) continue;
+          if (isUnavailable(mirrorState)) continue;
+          activeProvider = mirror;
+          activeState = mirrorState;
+          fallbackFrom = provider.name;
+          break;
+        }
       }
-    }
 
-    const down = isUnavailable(activeState);
-    const demoted = (state?.reportCount ?? 0) >= EMBED_REPORTS_TO_DEMOTE;
-    const priority = state?.priority ?? defaultProviderPriority(idx);
+      const embedUrl = urlFor(activeProvider);
+      if (!embedUrl) return null;
 
-    return {
-      orderRank: down ? 2 : demoted ? 1 : 0,
-      priority,
-      defaultIndex: idx,
-      option: {
-        id: `embed-${provider.id}`,
-        kind: "embed" as const,
-        name: fallbackFrom
-          ? `${provider.name} (Mirror: ${activeProvider.name})`
-          : `${provider.name}${provider.badge ? ` (${provider.badge})` : ""}`,
-        providerId: provider.id,
-        language: provider.language,
-        health: activeState
-          ? {
-              status: activeState.status,
-              latencyMs: activeState.latencyMs,
-              reportCount: state?.reportCount ?? 0,
-              ...(fallbackFrom ? { fallbackFrom } : {}),
-            }
-          : undefined,
-        embedUrl: urlFor(activeProvider),
-      } satisfies WatchOption,
-    };
-  }).filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+      const down = isUnavailable(activeState);
+      const demoted = (state?.reportCount ?? 0) >= EMBED_REPORTS_TO_DEMOTE;
+      const priority = state?.priority ?? defaultProviderPriority(provider.defaultIndex);
+
+      return {
+        orderRank: down ? 2 : demoted ? 1 : 0,
+        priority,
+        defaultIndex: provider.defaultIndex,
+        option: {
+          id: `embed-${provider.id}`,
+          kind: "embed" as const,
+          name: fallbackFrom
+            ? `${provider.name} (Mirror: ${activeProvider.name})`
+            : `${provider.name}${provider.badge ? ` (${provider.badge})` : ""}`,
+          providerId: provider.id,
+          language: provider.language,
+          health: activeState
+            ? {
+                status: activeState.status,
+                latencyMs: activeState.latencyMs,
+                reportCount: state?.reportCount ?? 0,
+                ...(fallbackFrom ? { fallbackFrom } : {}),
+              }
+            : undefined,
+          embedUrl,
+        } satisfies WatchOption,
+      };
+    })
+    .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
 
   // Healthy servers come first (by admin priority, then default order), followed by user-reported,
   // and down/auto-skipped servers at the bottom.
