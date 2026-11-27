@@ -47,10 +47,12 @@ describe("video links", () => {
   });
   it.each([
     "https://embed.vidrift.net/embed/movie/438631",
-    "https://vidsrc.xyz/embed/movie/550",
+    "https://vidsrc.to/embed/movie/550",
     "https://2embed.cc/embed/550",
     "https://player.vidzee.wtf/embed/movie/438631?sr=6",
-    "https://player.vidfast.pro/movie/438631?sub=hi",
+    "https://vidsrc.sh/embed/movie/438631",
+    "https://www.viduki.net/1/movie/438631",
+    "https://watch.embed-api.stream/embed/movie/438631",
   ])("accepts known streaming embed %s", (url) => {
     expect(checkVideoUrl(url).ok).toBe(true);
   });
@@ -58,6 +60,26 @@ describe("video links", () => {
     const opts = getEmbedWatchOptions({ titleId: "movie-438631" });
     expect(opts[0]).toMatchObject({ providerId: "vidrift", language: "english" });
     expect(opts.some((o) => o.language === "hindi")).toBe(true);
+  });
+  it("hides disabled servers, demotes reported servers, and falls back to healthy mirrors when down", () => {
+    const opts = getEmbedWatchOptions({
+      titleId: "movie-438631",
+      states: {
+        vidrift: { enabled: false, priority: 10, status: "online", latencyMs: 120, failCount: 0, reportCount: 0 },
+        vidlink: { enabled: true, priority: 20, status: "online", latencyMs: 150, failCount: 0, reportCount: 3 },
+        "vidsrc-to": { enabled: true, priority: 40, status: "down", latencyMs: null, failCount: 3, reportCount: 0 },
+        "vidsrc-sh": { enabled: true, priority: 120, status: "online", latencyMs: 210, failCount: 0, reportCount: 0 },
+      },
+    });
+    expect(opts.some((o) => o.providerId === "vidrift")).toBe(false);
+    // vidsrc-to was down, so it falls back to vidsrc-sh's URL and becomes healthy
+    const vidsrcTo = opts.find((o) => o.providerId === "vidsrc-to");
+    expect(vidsrcTo?.embedUrl).toBe("https://vidsrc.sh/embed/movie/438631");
+    expect(vidsrcTo?.health?.fallbackFrom).toBe("VidSrc.to");
+    // vidlink has 3 reports, so it is demoted after clean servers like cinesrc
+    const cinesrcIdx = opts.findIndex((o) => o.providerId === "cinesrc");
+    const vidlinkIdx = opts.findIndex((o) => o.providerId === "vidlink");
+    expect(cinesrcIdx).toBeLessThan(vidlinkIdx);
   });
   it.each(["https://malicious-random-site.com/video.html", "http://cdn.example.com/a.m3u8"])("rejects %s", (url) =>
     expect(checkVideoUrl(url).ok).toBe(false)

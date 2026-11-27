@@ -21,62 +21,40 @@ export const EMBED_HOSTS = [
   "Dailymotion",
   "VidRift",
   "VidLink",
-  "Embed.su",
   "CineSrc",
   "VidSrc",
-  "AutoEmbed",
+  "AutoEmbed.me",
   "MultiEmbed",
   "SmashyStream",
   "2Embed",
-  "Videasy",
-  "MoviesAPI",
-  "RiveStream",
-  "111Movies",
   "NontonGo",
   "Frembed",
   "VidZee",
-  "VidFast",
+  "Viduki",
+  "Embed API Stream",
 ] as const;
 
 export const STREAMING_EMBED_DOMAINS = [
   "embed.vidrift.net",
   "vidrift.net",
   "vidlink.pro",
-  "embed.su",
   "cinesrc.st",
-  "cinesrc.xyz",
-  "vidsrc.cc",
   "vidsrc.to",
-  "vidsrc.pro",
-  "vidsrc.xyz",
-  "vidsrc.net",
-  "vidsrc.me",
-  "vidsrc.vip",
   "vidsrc.su",
-  "vidsrc.in",
-  "vidsrc.icu",
-  "autoembed.cc",
-  "player.autoembed.cc",
-  "v2.autoembed.cc",
+  "vidsrc.sh",
+  "vidsrc.me",
   "autoembed.me",
   "multiembed.mov",
   "embed.smashystream.com",
   "smashystream.com",
   "2embed.cc",
-  "2embed.to",
-  "2embed.skin",
-  "videasy.net",
-  "player.videasy.net",
-  "moviesapi.club",
-  "rivestream.live",
-  "111movies.com",
   "nontongo.win",
   "frembed.pro",
-  "frembed.fun",
   "player.vidzee.wtf",
   "vidzee.wtf",
-  "player.vidfast.pro",
-  "vidfast.pro",
+  "viduki.net",
+  "embed-api.stream",
+  "watch.embed-api.stream",
 ] as const;
 
 const YT_ID = /^[\w-]{6,20}$/;
@@ -216,21 +194,17 @@ export function providerIdFor(kind: VideoKind, url: string): string | null {
   if (on("dailymotion.com", "dai.ly")) return "dailymotion";
   if (on("vidrift.net")) return "vidrift";
   if (on("vidlink.pro")) return "vidlink";
-  if (on("embed.su")) return "embed-su";
-  if (on("cinesrc.st", "cinesrc.xyz")) return "cinesrc";
-  if (on("vidsrc.cc", "vidsrc.to", "vidsrc.pro", "vidsrc.xyz", "vidsrc.net", "vidsrc.me", "vidsrc.vip", "vidsrc.su", "vidsrc.in", "vidsrc.icu")) return "vidsrc";
-  if (on("autoembed.cc", "autoembed.me")) return "autoembed";
+  if (on("cinesrc.st")) return "cinesrc";
+  if (on("vidsrc.to", "vidsrc.su", "vidsrc.sh", "vidsrc.me")) return "vidsrc";
+  if (on("autoembed.me")) return "autoembed";
   if (on("multiembed.mov")) return "multiembed";
   if (on("smashystream.com")) return "smashystream";
-  if (on("2embed.cc", "2embed.to", "2embed.skin")) return "2embed";
-  if (on("videasy.net")) return "videasy";
-  if (on("moviesapi.club")) return "moviesapi";
-  if (on("rivestream.live")) return "rivestream";
-  if (on("111movies.com")) return "111movies";
+  if (on("2embed.cc")) return "2embed";
   if (on("nontongo.win")) return "nontongo";
-  if (on("frembed.pro", "frembed.fun")) return "frembed";
+  if (on("frembed.pro")) return "frembed";
   if (on("vidzee.wtf")) return "vidzee";
-  if (on("vidfast.pro")) return "vidfast";
+  if (on("viduki.net")) return "viduki";
+  if (on("embed-api.stream")) return "embed-api-stream";
   return null;
 }
 

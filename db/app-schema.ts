@@ -1,6 +1,6 @@
 // CineYellow's own tables. Everything hangs off Better Auth's `user` row and is removed with it
 // (onDelete: cascade), so "Delete account" also clears profiles, lists and history.
-import type { AvatarColor, LanguageStatus, PaymentProvider, PlanId, PlayerPrefs, SubtitleTrack } from "@/lib/types";
+import type { AvatarColor, LanguageStatus, PaymentProvider, PlanId, PlayerPrefs, ServerHealthStatus, SubtitleTrack } from "@/lib/types";
 import { relations, sql } from "drizzle-orm";
 import { boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
@@ -324,6 +324,73 @@ export const videoSource = pgTable(
     check("video_source_status_chk", sql`${table.status} in ('active', 'disabled', 'broken')`),
     check("video_source_priority_chk", sql`${table.priority} between 0 and 1000`),
   ],
+);
+
+/**
+ * Runtime state, admin overrides, and latest health for each built-in embed provider
+ * (lib/player/embed-providers.ts). Seeded/upserted automatically when admins or cron touch them.
+ */
+export const embedServerState = pgTable(
+  "embed_server_state",
+  {
+    id: text("id").primaryKey(),
+    enabled: boolean("enabled").notNull().default(true),
+    /** Lower plays first (0..1000). */
+    priority: integer("priority").notNull().default(100),
+    status: text("status").$type<ServerHealthStatus>().notNull().default("online"),
+    latencyMs: integer("latency_ms"),
+    /** Consecutive health-check failures (>= 3 triggers auto-skip until a check passes). */
+    failCount: integer("fail_count").notNull().default(0),
+    /** Distinct user broken reports since last reset (>= 3 demotes the server). */
+    reportCount: integer("report_count").notNull().default(0),
+    lastError: text("last_error"),
+    lastCheckedAt: timestamp("last_checked_at"),
+    lastOkAt: timestamp("last_ok_at"),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    check("embed_server_status_chk", sql`${table.status} in ('online', 'slow', 'down')`),
+    check("embed_server_priority_chk", sql`${table.priority} between 0 and 1000`),
+    check("embed_server_fail_chk", sql`${table.failCount} >= 0`),
+    check("embed_server_report_chk", sql`${table.reportCount} >= 0`),
+  ],
+);
+
+/**
+ * Historical check samples per embed provider for 24h / 7d uptime percentages.
+ */
+export const embedServerCheck = pgTable(
+  "embed_server_check",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    serverId: text("server_id").notNull(),
+    status: text("status").$type<ServerHealthStatus>().notNull(),
+    latencyMs: integer("latency_ms"),
+    httpStatus: integer("http_status"),
+    error: text("error"),
+    checkedAt: timestamp("checked_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("embed_server_check_server_time_idx").on(table.serverId, table.checkedAt),
+    check("embed_server_check_status_chk", sql`${table.status} in ('online', 'slow', 'down')`),
+  ],
+);
+
+/**
+ * One "Report broken" vote per signed-in user per embed server (prevents duplicate spam).
+ * Cleared when an admin resets reports for that server.
+ */
+export const embedServerReport = pgTable(
+  "embed_server_report",
+  {
+    serverId: text("server_id").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    titleId: text("title_id").notNull().default(""),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.serverId, table.userId] })],
 );
 
 export const profileRelations = relations(profile, ({ one, many }) => ({

@@ -152,6 +152,15 @@ export interface VideoSource {
 }
 
 export type ServerLanguage = "english" | "hindi";
+export type ServerHealthStatus = "online" | "slow" | "down";
+
+export interface WatchOptionHealth {
+  status: ServerHealthStatus;
+  latencyMs: number | null;
+  reportCount?: number;
+  /** Set when this server's primary host was down and playback fell back to a healthy mirror. */
+  fallbackFrom?: string;
+}
 
 /**
  * One playable choice on the watch page, in ranked order: an HLS source carries its own Playback
@@ -164,6 +173,7 @@ export interface WatchOption {
   name: string;
   providerId: string;
   language?: ServerLanguage;
+  health?: WatchOptionHealth;
   playback?: Playback;
   embedUrl?: string;
 }

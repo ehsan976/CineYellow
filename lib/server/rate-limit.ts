@@ -21,6 +21,8 @@ export const RATE_LIMITS = {
   progress: { limit: 60, windowMs: 60_000 },
   /** Each checkout inserts a payment row and calls Safepay twice. Per user. */
   checkout: { limit: 5, windowMs: 10 * 60_000 },
+  /** User "Report broken server" clicks. Per user. */
+  serverReport: { limit: 15, windowMs: 10 * 60_000 },
 } satisfies Record<string, Bucket>;
 
 export type RateLimitName = keyof typeof RATE_LIMITS;
