@@ -35,13 +35,17 @@ export function TitleView({ details, initialEpisodes }: { details: TitleDetails;
       {/* Hero */}
       {/* At least 72% of the screen (540–780px), but it grows with long names / overviews, and the
           top padding keeps the breadcrumb clear of the fixed navbar (it used to slide under it). */}
-      <section className="relative flex min-h-[clamp(480px,68svh,780px)] w-full flex-col md:min-h-[clamp(540px,72svh,780px)]">
-        <Image src={title.backdrop} alt="" fill preload sizes="100vw" className="object-cover" />
-        {/* Phones: the text spans the full width, so a lighter side shade keeps the image visible. */}
-        <div className="absolute inset-0 bg-linear-to-r from-background/60 via-background/25 to-transparent md:from-background md:via-background/70" />
-        <div className="absolute inset-0 bg-linear-to-t from-background via-background/30 to-black/20 md:via-background/20 md:to-black/40" />
+      {/* Phones: the whole 16:9 image sits under the header (96px) and the text follows below it,
+          instead of a tall crop of the image hidden behind the text. md and up: full-bleed backdrop. */}
+      <section className="relative flex w-full flex-col pt-24 md:min-h-[clamp(540px,72svh,780px)] md:pt-0">
+        <div className="relative aspect-video w-full md:absolute md:inset-0 md:aspect-auto">
+          <Image src={title.backdrop} alt="" fill preload sizes="100vw" className="object-cover" />
+          <div className="absolute inset-0 bg-linear-to-t from-background via-transparent to-transparent md:hidden" />
+          <div className="absolute inset-0 hidden bg-linear-to-r from-background via-background/60 to-transparent md:block" />
+          <div className="absolute inset-0 hidden bg-linear-to-t from-background via-background/10 to-black/30 md:block" />
+        </div>
 
-        <div className="relative mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-end px-4 pt-24 pb-10 md:px-10 md:pb-14">
+        <div className="relative mx-auto -mt-8 flex w-full max-w-[1600px] flex-1 flex-col justify-end px-4 pb-10 md:mt-0 md:px-10 md:pt-24 md:pb-14">
           <nav aria-label="Breadcrumb" className="mb-5 hidden items-center gap-1.5 text-sm text-muted-foreground md:flex">
             <Link href="/" className="hover:text-primary">Home</Link>
             <ChevronRight className="size-3.5" />
