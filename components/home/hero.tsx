@@ -70,8 +70,9 @@ export function Hero({ items }: { items: FeaturedItem[] }) {
                     </picture>
                     {/* Readability gradients */}
                     <div className="absolute inset-0 bg-linear-to-t from-black/95 via-black/10 to-transparent md:hidden" />
-                    <div className="absolute inset-0 hidden bg-linear-to-r from-background via-background/60 to-transparent md:block" />
-                    <div className="absolute inset-0 hidden bg-linear-to-t from-background via-transparent to-black/30 md:block" />
+                    {/* Shade only where the text is (left, bottom); the rest of the image stays bright. */}
+                    <div className="absolute inset-0 hidden bg-linear-to-r from-background/90 via-background/35 via-35% to-transparent to-60% md:block" />
+                    <div className="absolute inset-0 hidden bg-linear-to-t from-background via-transparent via-30% to-black/10 md:block" />
 
                     {/* Phones: tap the card for details; genres and two buttons along the bottom. */}
                     <button
