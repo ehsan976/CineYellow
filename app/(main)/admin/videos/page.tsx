@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 
 import { requireAdmin } from "@/lib/server/dal";
 import { listEmbedServersForAdmin } from "@/lib/server/embed-health";
-import { listProviders, listTitleVideos } from "@/lib/server/video-sources";
+import { listTitleVideos } from "@/lib/server/video-sources";
 import { EmbedServersAdmin } from "@/components/admin/embed-servers-admin";
-import { VideoProvidersAdmin } from "@/components/admin/video-providers-admin";
 import { PageHeading } from "@/components/account/settings-ui";
 import { AdminNav } from "@/components/admin/admin-nav";
 import { TitleVideosAdmin } from "@/components/admin/title-videos-admin";
@@ -42,15 +41,10 @@ async function VideosContent({ searchParams }: Props) {
   const params = await searchParams;
   const q = first(params.q).slice(0, 100);
   const page = Math.min(Math.max(1, Number.parseInt(first(params.page), 10) || 1), 1000);
-  const [data, providers, embedServers] = await Promise.all([
-    listTitleVideos({ q, page }),
-    listProviders(),
-    listEmbedServersForAdmin(),
-  ]);
+  const [data, embedServers] = await Promise.all([listTitleVideos({ q, page }), listEmbedServersForAdmin()]);
   return (
     <>
       <EmbedServersAdmin servers={embedServers} />
-      <VideoProvidersAdmin providers={providers} />
       <TitleVideosAdmin {...data} q={q} />
     </>
   );

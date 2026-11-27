@@ -308,45 +308,6 @@ export async function updateSource(
   return row?.titleId ?? null;
 }
 
-export interface ProviderRow {
-  id: string;
-  name: string;
-  kind: "hls" | "embed";
-  enabled: boolean;
-  priority: number;
-  hosts: string[];
-  /** Sources using this provider. */
-  sources: number;
-}
-
-export async function listProviders(): Promise<ProviderRow[]> {
-  const rows = await db
-    .select({
-      id: videoProvider.id,
-      name: videoProvider.name,
-      kind: videoProvider.kind,
-      enabled: videoProvider.enabled,
-      priority: videoProvider.priority,
-      hosts: videoProvider.hosts,
-      // Fully qualified on purpose: inside a select, Drizzle prints columns without their table,
-      // and a bare "id" here would mean video_source.id (uuid) instead of the provider's id.
-      sources: sql<number>`(select count(*)::int from "video_source" vs where vs."provider_id" = "video_provider"."id")`,
-    })
-    .from(videoProvider)
-    .orderBy(asc(videoProvider.priority), asc(videoProvider.name));
-  return rows;
-}
-
-/** Turn a provider off/on or change its priority. Returns false when it doesn't exist. */
-export async function updateProvider(id: string, patch: { enabled?: boolean; priority?: number }): Promise<boolean> {
-  const rows = await db
-    .update(videoProvider)
-    .set({ ...patch, updatedAt: new Date() })
-    .where(eq(videoProvider.id, id))
-    .returning({ id: videoProvider.id });
-  return rows.length > 0;
-}
-
 /** The title a source belongs to, or null when it doesn't exist. */
 export async function getSourceTitleId(id: string): Promise<string | null> {
   const [row] = await db.select({ titleId: videoSource.titleId }).from(videoSource).where(eq(videoSource.id, id)).limit(1);
