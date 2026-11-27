@@ -37,8 +37,9 @@ export function TitleView({ details, initialEpisodes }: { details: TitleDetails;
           top padding keeps the breadcrumb clear of the fixed navbar (it used to slide under it). */}
       <section className="relative flex min-h-[clamp(480px,68svh,780px)] w-full flex-col md:min-h-[clamp(540px,72svh,780px)]">
         <Image src={title.backdrop} alt="" fill preload sizes="100vw" className="object-cover" />
-        <div className="absolute inset-0 bg-linear-to-r from-background via-background/70 to-transparent" />
-        <div className="absolute inset-0 bg-linear-to-t from-background via-background/20 to-black/40" />
+        {/* Phones: the text spans the full width, so a lighter side shade keeps the image visible. */}
+        <div className="absolute inset-0 bg-linear-to-r from-background/60 via-background/25 to-transparent md:from-background md:via-background/70" />
+        <div className="absolute inset-0 bg-linear-to-t from-background via-background/30 to-black/20 md:via-background/20 md:to-black/40" />
 
         <div className="relative mx-auto flex w-full max-w-[1600px] flex-1 flex-col justify-end px-4 pt-24 pb-10 md:px-10 md:pb-14">
           <nav aria-label="Breadcrumb" className="mb-5 hidden items-center gap-1.5 text-sm text-muted-foreground md:flex">

@@ -4,7 +4,6 @@ import { getTitleDetails } from "@/lib/tmdb/catalog";
 import { isTitleId } from "@/lib/titles";
 import { CATALOG_CACHE_HEADERS } from "@/lib/server/catalog-http";
 import { rateLimit } from "@/lib/server/rate-limit";
-import { getAvailableTitleIds } from "@/lib/server/video-sources";
 
 /** GET /api/catalog/title/movie-550 → TitleDetails (title, similar titles, IMDb id). */
 export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -12,8 +11,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
   if (limited) return limited;
   const { id } = await params;
   if (!isTitleId(id)) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  const [details, availableIds] = await Promise.all([getTitleDetails(id), getAvailableTitleIds()]);
+  const details = await getTitleDetails(id);
   if (!details) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  // `available`: does CineYellow have a video for it (drives Play vs "Where to Watch").
-  return NextResponse.json({ ...details, available: availableIds.includes(id) }, { headers: CATALOG_CACHE_HEADERS });
+  // Every title plays through the embed servers, so the popup shows Play like the title page.
+  return NextResponse.json({ ...details, available: true }, { headers: CATALOG_CACHE_HEADERS });
 }
