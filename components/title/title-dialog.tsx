@@ -46,7 +46,7 @@ export function TitleDialog({
       <DialogContent
         showCloseButton={false}
         // Phones: a full-screen sheet that slides up, like an app. sm and up: the centred popup.
-        className="block max-h-[92svh] gap-0 overflow-y-auto overscroll-contain p-0 sm:max-w-3xl max-sm:top-0 max-sm:left-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] max-sm:ring-0 max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom-8"
+        className="block max-h-[92svh] gap-0 overflow-x-hidden overflow-y-auto overscroll-contain p-0 sm:max-w-3xl max-sm:top-0 max-sm:left-0 max-sm:h-dvh max-sm:max-h-none max-sm:max-w-none max-sm:translate-x-0 max-sm:translate-y-0 max-sm:rounded-none max-sm:pb-[env(safe-area-inset-bottom)] max-sm:ring-0 max-sm:data-open:zoom-in-100 max-sm:data-open:slide-in-from-bottom-8"
       >
         {title ? (
           // key resets tabs / season when "More Like This" switches title
@@ -118,7 +118,8 @@ function TitleDetails({
   return (
     <div ref={rootRef}>
       {/* Backdrop */}
-      <div className="relative aspect-video w-full">
+      {/* Taller on phones so the title and the (wrapping) buttons fit over the image. */}
+      <div className="relative aspect-4/3 w-full sm:aspect-video">
         <Image
           src={title.backdrop}
           alt=""
@@ -148,7 +149,7 @@ function TitleDetails({
           >
             {title.title}
           </DialogTitle>
-          <div className="mt-4 flex items-center gap-3">
+          <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
             <PlayLink title={title} available={available} />
             <TrailerButton trailer={trailer} titleName={title.title} size="default" className="h-10 px-4" />
             <ListButton titleId={title.id} name={title.title} size="lg" />

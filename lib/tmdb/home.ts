@@ -102,7 +102,7 @@ export async function getHomePage(): Promise<HomePage> {
   const details = await Promise.all(candidates.map((t) => getTitleDetails(t.id)));
   const featured: FeaturedItem[] = candidates.map((summary, i) => {
     const title = details[i]?.title ?? summary;
-    return { title, tagline: tagline(details[i]?.tagline, title), available: available.has(title.id) };
+    return { title, tagline: tagline(details[i]?.tagline, title), available: true };
   });
 
   const rows = [...top, ...trending, ...more];
