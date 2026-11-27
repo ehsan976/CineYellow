@@ -11,7 +11,6 @@ import {
   getSourceTitleId,
   saveTitleVideo,
   titleVideosTag,
-  updateProvider,
   updateSource,
 } from "@/lib/server/video-sources";
 import { checkOneSource } from "@/lib/server/source-health";
@@ -200,21 +199,5 @@ export async function checkSourceAction(id: string) {
     if (result.outcome === "skipped") return result.error ? `Not checked: ${result.error}` : "This host's player can't be checked from the server";
     if (result.outcome === "advisory") throw new InputError(`Couldn't tell: ${result.error}`);
     throw new InputError(`Not working: ${result.error ?? "unknown error"}`);
-  });
-}
-
-/** Turn a provider on/off or change its priority. Affects every title, so every cache refreshes. */
-export async function updateProviderAction(id: string, patch: { enabled?: boolean; priority?: number | string }) {
-  return attempt(async () => {
-    await requireAdmin();
-    if (typeof id !== "string" || !/^[a-z0-9-]{1,40}$/.test(id)) throw new InputError("Invalid provider.");
-    const clean: Parameters<typeof updateProvider>[1] = {};
-    if (patch?.enabled !== undefined) clean.enabled = Boolean(patch.enabled);
-    if (patch?.priority !== undefined) clean.priority = priorityValue(patch.priority);
-    if (!Object.keys(clean).length) throw new InputError("Nothing to change.");
-    if (!(await updateProvider(id, clean))) throw new InputError("Unknown provider.");
-    updateTag(ALL_TITLE_VIDEOS_TAG);
-    if (clean.enabled !== undefined) return clean.enabled ? "Provider turned on" : "Provider turned off";
-    return "Provider updated";
   });
 }
