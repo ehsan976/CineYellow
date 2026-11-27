@@ -1,6 +1,6 @@
 // CineYellow's own tables. Everything hangs off Better Auth's `user` row and is removed with it
 // (onDelete: cascade), so "Delete account" also clears profiles, lists and history.
-import type { AvatarColor, LanguageStatus, PaymentProvider, PlanId, PlayerPrefs, ServerHealthStatus, SubtitleTrack } from "@/lib/types";
+import type { AvatarColor, LanguageStatus, PaymentProvider, PlanId, PlayerPrefs, ServerHealthStatus, ServerLanguage, SubtitleTrack } from "@/lib/types";
 import { relations, sql } from "drizzle-orm";
 import { boolean, check, index, integer, jsonb, pgTable, primaryKey, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
@@ -334,6 +334,15 @@ export const embedServerState = pgTable(
   "embed_server_state",
   {
     id: text("id").primaryKey(),
+    /** True when added from the admin UI rather than built into lib/player/embed-providers.ts. */
+    isCustom: boolean("is_custom").notNull().default(false),
+    /** Optional admin-set name/badge/language/URLs (custom servers or overrides for built-in ones). */
+    name: text("name"),
+    badge: text("badge"),
+    language: text("language").$type<ServerLanguage>(),
+    movieUrlTemplate: text("movie_url_template"),
+    tvUrlTemplate: text("tv_url_template"),
+    mirrors: text("mirrors").array(),
     enabled: boolean("enabled").notNull().default(true),
     /** Lower plays first (0..1000). */
     priority: integer("priority").notNull().default(100),
@@ -350,6 +359,7 @@ export const embedServerState = pgTable(
   },
   (table) => [
     check("embed_server_status_chk", sql`${table.status} in ('online', 'slow', 'down')`),
+    check("embed_server_language_chk", sql`${table.language} is null or ${table.language} in ('english', 'hindi')`),
     check("embed_server_priority_chk", sql`${table.priority} between 0 and 1000`),
     check("embed_server_fail_chk", sql`${table.failCount} >= 0`),
     check("embed_server_report_chk", sql`${table.reportCount} >= 0`),

@@ -6,7 +6,7 @@ import { oembedUrl, parseHlsManifest } from "@/lib/video-providers/health";
 import { isKidsFriendly, runtimeToSeconds } from "@/lib/titles";
 import { isAnime, toEpisodes } from "@/lib/tmdb/map";
 import { checkSubtitles, checkVideoUrl, providerIdFor } from "@/lib/videos";
-import { getEmbedWatchOptions } from "@/lib/player/embed-providers";
+import { formatEmbedTemplate, getEmbedWatchOptions, validateEmbedTemplate } from "@/lib/player/embed-providers";
 import { releaseNotice, type ReleaseInfo } from "@/lib/releases";
 import type { Title } from "@/lib/types";
 
@@ -80,6 +80,44 @@ describe("video links", () => {
     const cinesrcIdx = opts.findIndex((o) => o.providerId === "cinesrc");
     const vidlinkIdx = opts.findIndex((o) => o.providerId === "vidlink");
     expect(cinesrcIdx).toBeLessThan(vidlinkIdx);
+  });
+  it("formats and validates custom embed URL templates and includes custom servers", () => {
+    expect(
+      formatEmbedTemplate("https://custom.example.com/tv/{id}/{s}/{e}?imdb={imdb}", {
+        tmdbId: 1399,
+        season: 2,
+        episode: 5,
+        imdbId: "tt0944947",
+      })
+    ).toBe("https://custom.example.com/tv/1399/2/5?imdb=tt0944947");
+    expect(validateEmbedTemplate("http://insecure.example.com/{id}", { required: true }).ok).toBe(false);
+    expect(validateEmbedTemplate("", { required: false })).toMatchObject({ ok: true, value: "" });
+
+    const states = {
+      "my-hindi": {
+        isCustom: true,
+        name: "My Hindi Server",
+        badge: "Custom HD",
+        language: "hindi" as const,
+        movieUrlTemplate: "https://myhindi.example.com/movie/{id}",
+        tvUrlTemplate: "",
+        enabled: true,
+        priority: 5,
+        status: "online" as const,
+        latencyMs: 95,
+        failCount: 0,
+        reportCount: 0,
+      },
+    };
+    const movieOpts = getEmbedWatchOptions({ titleId: "movie-438631", states });
+    expect(movieOpts[0]).toMatchObject({
+      providerId: "my-hindi",
+      language: "hindi",
+      embedUrl: "https://myhindi.example.com/movie/438631",
+    });
+    // Movie-only custom server (empty tvUrlTemplate) is omitted on TV episodes.
+    const tvOpts = getEmbedWatchOptions({ titleId: "tv-1399", season: 1, episode: 1, states });
+    expect(tvOpts.some((o) => o.providerId === "my-hindi")).toBe(false);
   });
   it.each(["https://malicious-random-site.com/video.html", "http://cdn.example.com/a.m3u8"])("rejects %s", (url) =>
     expect(checkVideoUrl(url).ok).toBe(false)
