@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 import { AppProvider } from "@/components/providers/app-provider";
@@ -37,6 +38,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {/* Navbar + footer live in app/(main)/layout.tsx; the player and sign-in pages have none */}
         <AppProvider>{children}</AppProvider>
+        {/* Real-user page speed (Vercel → Speed Insights). Sends nothing outside Vercel deployments. */}
+        <SpeedInsights />
       </body>
     </html>
   );

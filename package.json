@@ -15,6 +15,7 @@
     "make-admin": "node scripts/make-admin.mjs"
   },
   "dependencies": {
+    "@vercel/speed-insights": "^2.1.1",
     "@videojs/core": "^10.5.0",
     "@videojs/hlsjs-video": "^10.4.0",
     "@videojs/react": "^10.5.0",
